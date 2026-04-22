@@ -1,6 +1,6 @@
 export default function CtaBand() {
   return (
-    <section style={{ padding: '0 5% 0', background: '#fff', borderTop: '1px solid #e5e5e5' }}>
+    <section style={{ padding: '0 5% 0', background: '#fff' }}>
       <div
         style={{
           background: '#0f0f0f',

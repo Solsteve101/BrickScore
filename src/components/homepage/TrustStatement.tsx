@@ -4,7 +4,6 @@ export default function TrustStatement() {
       style={{
         padding: '80px 5%',
         background: '#fff',
-        borderTop: '1px solid #e5e5e5',
         display: 'flex',
         alignItems: 'center',
         gap: 80,

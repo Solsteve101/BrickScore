@@ -39,7 +39,7 @@ function Check({ yes }: { yes: boolean }) {
 
 export default function ComparisonTable() {
   return (
-    <section style={{ padding: '96px 5%', background: '#fff', borderTop: '1px solid #e5e5e5' }}>
+    <section style={{ padding: '96px 5%', background: '#fff' }}>
       <h2
         style={{
           margin: '0 0 10px',

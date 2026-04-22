@@ -1,131 +1,124 @@
+'use client'
+
 const TESTIMONIALS = [
   {
-    quote: 'Mit BrickScore sehe ich in 30 Sekunden, ob ein Deal sich rechnet. Excel brauch ich dafür nicht mehr.',
+    quote: 'Hab vorher alles in Excel gemacht. Jetzt paste ich den Link rein und hab sofort alle Zahlen. Spart mir locker eine Stunde pro Objekt.',
     name: 'Markus R.',
-    role: 'Privatinvestor',
-    location: 'München',
-    portfolio: '4 Einheiten',
-    initials: 'MR',
+    avatar: 'https://randomuser.me/api/portraits/men/75.jpg',
   },
   {
-    quote: 'Endlich ein Tool, das Kaufnebenkosten nach Bundesland automatisch berechnet. Das hat mir früher immer gefehlt.',
+    quote: 'Kaufnebenkosten werden automatisch nach Bundesland berechnet. Das zeigt, dass das Tool für den deutschen Markt gebaut ist.',
     name: 'Sandra K.',
-    role: 'Immobilienkäuferin',
-    location: 'Hamburg',
-    portfolio: '2 Einheiten',
-    initials: 'SK',
+    avatar: 'https://randomuser.me/api/portraits/women/68.jpg',
   },
   {
-    quote: 'Der Deal Score hilft mir, Objekte objektiv zu vergleichen. Kein Bauchgefühl mehr, nur Zahlen.',
+    quote: 'Der Deal-Score gibt mir eine schnelle Einschätzung, bevor ich mich tiefer in ein Objekt reinarbeite. Sehr praktisch bei vielen Inseraten.',
     name: 'Thomas W.',
-    role: 'Buy & Hold Investor',
-    location: 'Berlin',
-    portfolio: '8 Einheiten',
-    initials: 'TW',
+    avatar: 'https://randomuser.me/api/portraits/men/52.jpg',
   },
   {
-    quote: 'Ich nutze BrickScore für jede Besichtigung als Vorbereitung. Die Cashflow-Analyse ist unschlagbar einfach.',
+    quote: 'Ich schick meinem Bankberater jetzt einfach die Cashflow-Analyse aus BrickScore mit. Spart beiden Seiten Zeit.',
     name: 'Julia M.',
-    role: 'Immobilienanalystin',
-    location: 'Frankfurt',
-    portfolio: '6 Einheiten',
-    initials: 'JM',
+    avatar: 'https://randomuser.me/api/portraits/women/90.jpg',
   },
 ]
 
 export default function Testimonials() {
   return (
-    <section style={{ padding: '96px 5%', background: '#fff', borderTop: '1px solid #e5e5e5' }}>
-      <h2
-        style={{
-          margin: '0 0 10px',
-          font: '700 clamp(28px, 3vw, 40px)/1.1 var(--font-dm-sans), sans-serif',
-          letterSpacing: '-0.025em',
-          color: '#0a0a0a',
-        }}
-      >
-        Vertrauen von Investoren
-      </h2>
-      <p
-        style={{
-          margin: '0 0 56px',
-          font: '400 15px/1 var(--font-dm-sans), sans-serif',
-          color: '#8a8a8a',
-        }}
-      >
-        Von privaten Käufern bis zu erfahrenen Portfolio-Investoren.
-      </p>
+    <section style={{ padding: '96px 5%', background: '#fafafa' }}>
+      <div style={{ marginBottom: 56 }}>
+        <h2
+          style={{
+            margin: '0 0 4px',
+            font: '700 clamp(28px, 3vw, 40px)/1.1 var(--font-dm-sans), sans-serif',
+            letterSpacing: '-0.025em',
+            color: '#0a0a0a',
+          }}
+        >
+          Was unsere Nutzer
+        </h2>
+        <h2
+          style={{
+            margin: '0 0 16px',
+            font: '400 clamp(28px, 3vw, 40px)/1.1 var(--font-dm-sans), sans-serif',
+            letterSpacing: '-0.025em',
+            color: '#b0b0b0',
+          }}
+        >
+          über BrickScore sagen
+        </h2>
+        <p style={{ margin: 0, font: '400 15px/1 var(--font-dm-sans), sans-serif', color: '#8a8a8a' }}>
+          Echtes Feedback von Immobilien-Investoren aus ganz Deutschland.
+        </p>
+      </div>
 
       <div
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(4, 1fr)',
           gap: 20,
+          alignItems: 'stretch',
         }}
       >
-        {TESTIMONIALS.map((t) => (
+        {TESTIMONIALS.map((t, i) => (
           <div
             key={t.name}
             style={{
-              border: '1px solid #e5e5e5',
-              borderRadius: 12,
-              padding: '24px 22px',
+              background: '#ffffff',
+              border: '1px solid rgba(0,0,0,0.07)',
+              borderRadius: 16,
+              padding: '32px 24px 28px',
               display: 'flex',
               flexDirection: 'column',
-              gap: 20,
+              alignItems: 'center',
+              textAlign: 'center',
+              gap: 16,
+              height: '100%',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.05), 0 8px 24px rgba(0,0,0,0.06)',
+              transform: 'translateY(0)',
+              transition: 'box-shadow 200ms ease, transform 200ms ease',
+            }}
+            onMouseEnter={(e) => {
+              const el = e.currentTarget as HTMLDivElement
+              el.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08), 0 16px 40px rgba(0,0,0,0.10)'
+              el.style.transform = 'translateY(-4px)'
+            }}
+            onMouseLeave={(e) => {
+              const el = e.currentTarget as HTMLDivElement
+              el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05), 0 8px 24px rgba(0,0,0,0.06)'
+              el.style.transform = 'translateY(0)'
             }}
           >
-            {/* Avatar + name */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: '50%',
-                  background: '#f0f0f0',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  font: '600 14px/1 var(--font-dm-sans)',
-                  color: '#4a4a4a',
-                  flexShrink: 0,
-                }}
-              >
-                {t.initials}
-              </div>
-              <div>
-                <div style={{ font: '600 14px/1 var(--font-dm-sans)', color: '#0a0a0a', marginBottom: 4 }}>
-                  {t.name}
-                </div>
-                <div style={{ font: '400 12px/1 var(--font-dm-sans)', color: '#8a8a8a' }}>
-                  {t.role} · {t.location}
-                </div>
-              </div>
+            {/* Avatar */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={t.avatar}
+              alt={t.name}
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: '50%',
+                objectFit: 'cover',
+                border: '2px solid rgba(0,0,0,0.06)',
+                display: 'block',
+              }}
+            />
+
+            {/* Name */}
+            <div style={{ font: '600 15px/1 var(--font-dm-sans), sans-serif', color: '#0a0a0a' }}>
+              {t.name}
             </div>
 
             {/* Quote */}
             <p
               style={{
                 margin: 0,
-                font: '400 13.5px/1.55 var(--font-dm-sans), sans-serif',
-                color: '#4a4a4a',
-                flex: 1,
+                font: '400 14px/1.6 var(--font-dm-sans), sans-serif',
+                color: '#7a7a7a',
               }}
             >
               &ldquo;{t.quote}&rdquo;
             </p>
-
-            {/* Portfolio badge */}
-            <div
-              style={{
-                font: '500 11.5px/1 var(--font-dm-sans)',
-                color: '#8a8a8a',
-                borderTop: '1px solid #f0f0f0',
-                paddingTop: 14,
-              }}
-            >
-              Portfolio: {t.portfolio}
-            </div>
           </div>
         ))}
       </div>

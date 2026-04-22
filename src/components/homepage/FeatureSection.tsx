@@ -33,11 +33,11 @@ function UrlMockup() {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         {[
           ['Kaufpreis', '€ 425.000'],
-          ['Wohnfläche', '68 m²'],
-          ['Baujahr', '1997'],
           ['Bundesland', 'Berlin'],
-          ['Grunderwerbsteuer', '6,0 %'],
-          ['Notar & Grundbuch', '2,0 %'],
+          ['Nebenkosten', '€ 48.594'],
+          ['Eigenkapital', '€ 140.000'],
+          ['Laufende Kosten', '€ 360/Monat'],
+          ['Monatsmiete', '€ 2.480'],
         ].map(([k, v]) => (
           <div key={k} style={{ background: '#fff', border: '1px solid #eee', borderRadius: 7, padding: '10px 14px' }}>
             <div style={{ font: '400 11px/1 var(--font-dm-sans)', color: '#9a9a9a', marginBottom: 5 }}>{k}</div>
@@ -50,18 +50,27 @@ function UrlMockup() {
 }
 
 function KpiMockup() {
-  const kpis = [
-    { label: 'Bruttorendite', value: '5,8 %', color: '#1f8a65' },
-    { label: 'Nettorendite', value: '4,2 %', color: '#1f8a65' },
-    { label: 'Cashflow', value: '+ 195 €', color: '#1f8a65' },
-    { label: 'Cash-on-Cash', value: '7,1 %', color: '#c08532' },
-    { label: 'Kaufnebenkosten', value: '€ 55.250', color: '#0a0a0a' },
-    { label: 'Gesamtinvest', value: '€ 480.250', color: '#0a0a0a' },
+  const row1 = [
+    { label: 'Monats-Cashflow', value: '+€635', color: '#1f8a65' },
+    { label: 'Jahres-Cashflow', value: '+€7.617', color: '#1f8a65' },
+    { label: 'Netto-Rendite', value: '5,1 %', color: '#0a0a0a' },
+  ]
+  const row2 = [
+    { label: 'Cash-on-Cash', value: '5,4 %', color: '#1f8a65' },
+    { label: 'LTV', value: '80,6 %', color: '#0a0a0a' },
   ]
   return (
     <div style={{ background: '#f8f8f8', border: '1px solid #e5e5e5', borderRadius: 12, padding: 24 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
-        {kpis.map((k) => (
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 10 }}>
+        {row1.map((k) => (
+          <div key={k.label} style={{ background: '#fff', border: '1px solid #eee', borderRadius: 8, padding: '14px 16px' }}>
+            <div style={{ font: '400 11px/1 var(--font-dm-sans)', color: '#9a9a9a', marginBottom: 8 }}>{k.label}</div>
+            <div style={{ font: '700 20px/1 var(--font-dm-sans)', letterSpacing: '-0.02em', color: k.color }}>{k.value}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        {row2.map((k) => (
           <div key={k.label} style={{ background: '#fff', border: '1px solid #eee', borderRadius: 8, padding: '14px 16px' }}>
             <div style={{ font: '400 11px/1 var(--font-dm-sans)', color: '#9a9a9a', marginBottom: 8 }}>{k.label}</div>
             <div style={{ font: '700 20px/1 var(--font-dm-sans)', letterSpacing: '-0.02em', color: k.color }}>{k.value}</div>
@@ -118,11 +127,11 @@ const TABS: Tab[] = [
     id: 'kpis',
     label: 'Rendite KPIs',
     headline: 'Alle KPIs auf einen Blick',
-    sub: 'Cashflow, Mietrendite und Cash-on-Cash Return. Präzise berechnet nach deutschen Standards, fertig für dein Bankgespräch.',
+    sub: 'Monats-Cashflow, Netto-Rendite und Cash-on-Cash Return. Präzise berechnet nach deutschen Standards.',
     bullets: [
-      'Bruttorendite & Nettorendite',
-      'Monatlicher Cashflow',
-      'Cash-on-Cash Return',
+      'Monats- & Jahres-Cashflow',
+      'Netto-Rendite & Cash-on-Cash',
+      'Loan-to-Value (LTV)',
     ],
     mockup: <KpiMockup />,
   },
@@ -145,7 +154,7 @@ export default function FeatureSection() {
   const tab = TABS.find(t => t.id === activeTab)!
 
   return (
-    <section id="features" style={{ padding: '0 0 0', background: '#fff', borderTop: '1px solid #e5e5e5' }}>
+    <section id="features" style={{ padding: '0 0 0', background: '#fff' }}>
       {/* Tab nav */}
       <div style={{ padding: '0 5%', borderBottom: '1px solid #e5e5e5', display: 'flex', alignItems: 'center', gap: 0 }}>
         {TABS.map((t) => (
