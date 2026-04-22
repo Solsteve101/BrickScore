@@ -1,92 +1,65 @@
 export default function CtaBand() {
   return (
-    <section style={{ padding: '120px 5% 80px' }}>
+    <section style={{ padding: '0 5% 0', background: '#fff', borderTop: '1px solid #e5e5e5' }}>
       <div
         style={{
-          padding: '72px 48px',
-          borderRadius: 20,
-          background: '#26251e',
-          color: '#f2f1ed',
+          background: '#0f0f0f',
+          borderRadius: 16,
+          padding: '96px 64px',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: 24,
           textAlign: 'center',
-          position: 'relative',
-          overflow: 'hidden',
+          gap: 28,
+          margin: '80px 0 80px',
         }}
       >
-        {/* Decorative glow */}
-        <div
-          style={{
-            position: 'absolute',
-            right: -40,
-            top: -40,
-            width: 200,
-            height: 200,
-            borderRadius: 9999,
-            background: 'rgba(245,78,0,0.15)',
-            filter: 'blur(60px)',
-            pointerEvents: 'none',
-          }}
-          aria-hidden="true"
-        />
+        {/* Small mark */}
+        <svg viewBox="0 0 120 100" width={28} height={23} aria-hidden="true">
+          <path d="M60,52 L28,84 L28,70 L60,38 L92,70 L92,84 Z" fill="rgba(255,255,255,0.3)" />
+          <path d="M52,32 L60,24 L100,24 L92,32 Z" fill="rgba(255,255,255,0.3)" />
+        </svg>
 
         <h2
           style={{
             margin: 0,
-            fontFamily: 'var(--font-fraunces), sans-serif',
-            fontWeight: 400,
-            fontSize: 'clamp(36px, 4.4vw, 56px)',
-            lineHeight: 1.05,
+            font: '700 clamp(32px, 4vw, 56px)/1.06 var(--font-dm-sans), sans-serif',
             letterSpacing: '-0.03em',
-            maxWidth: 720,
-            position: 'relative',
+            color: '#f0f0f0',
+            maxWidth: 640,
           }}
         >
-          Bereit für deine{' '}
-          <em
-            style={{
-              fontStyle: 'italic',
-              color: '#f54e00',
-              fontFamily: 'var(--font-fraunces), sans-serif',
-            }}
-          >
-            erste Analyse?
-          </em>
+          Dein persönlicher{' '}
+          <span style={{ color: '#b8921a' }}>Immobilien-Rechner.</span>
         </h2>
 
         <p
           style={{
             margin: 0,
-            maxWidth: 540,
-            font: '400 16px/1.55 var(--font-space-grotesk), sans-serif',
-            color: 'rgba(242,241,237,0.7)',
-            position: 'relative',
+            font: '400 15px/1.6 var(--font-dm-sans), sans-serif',
+            color: 'rgba(240,240,240,0.55)',
+            maxWidth: 480,
           }}
         >
-          Kostenlos starten, keine Kreditkarte nötig. Erste Kalkulation in 30 Sekunden.
+          Vom Inserat zur Rendite in unter einer Minute.
+          Kostenlos starten, keine Kreditkarte nötig.
         </p>
 
-        <div style={{ display: 'inline-flex', gap: 10, position: 'relative' }}>
-          <a href="#calculator" className="v-cta-primary v-cta-primary--invert">
-            Jetzt Rendite berechnen
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <line x1="5" y1="12" x2="19" y2="12" />
-              <polyline points="12 5 19 12 12 19" />
-            </svg>
+        <div style={{ display: 'inline-flex', gap: 10 }}>
+          <a
+            href="#calculator"
+            className="cp-cta-pill cp-cta-pill-invert"
+            style={{ padding: '13px 28px', fontSize: 15 }}
+          >
+            Jetzt berechnen
           </a>
-          <button className="v-cta-secondary v-cta-secondary--invert">Demo ansehen</button>
+          <a
+            href="#features"
+            className="cp-cta-ghost cp-cta-ghost-invert"
+            style={{ padding: '13px 24px', fontSize: 15 }}
+          >
+            Demo ansehen
+          </a>
         </div>
       </div>
     </section>

@@ -1,58 +1,64 @@
-'use client'
-
-const PORTALS = ['ImmoScout24', 'Immowelt', 'Kleinanzeigen', 'Engel & Völkers', 'Immonet', 'eBay Kleinanzeigen']
+const PORTALS = [
+  'ImmoScout24',
+  'Immowelt',
+  'Kleinanzeigen',
+  'Engel & Völkers',
+  'Immonet',
+  'Wohnungsboerse',
+  'immobilien.de',
+]
 
 export default function PortalWall() {
   return (
     <section
       style={{
-        padding: '72px 5% 16px',
+        padding: '0 5% 0',
+        borderTop: '1px solid #e5e5e5',
+        borderBottom: '1px solid #e5e5e5',
+        background: '#fff',
       }}
     >
-      <p
-        style={{
-          margin: '0 0 24px',
-          textAlign: 'center',
-          font: '500 11px/1 var(--font-space-grotesk), sans-serif',
-          letterSpacing: '1.2px',
-          textTransform: 'uppercase',
-          color: 'rgba(38,37,30,0.45)',
-        }}
-      >
-        Inserate direkt von führenden Immobilien-Portalen importieren
-      </p>
       <div
         style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(6, 1fr)',
+          display: 'flex',
+          alignItems: 'center',
           gap: 0,
-          borderTop: '1px solid rgba(38,37,30,0.08)',
-          borderBottom: '1px solid rgba(38,37,30,0.08)',
+          height: 64,
         }}
       >
-        {PORTALS.map((portal, i) => (
-          <div
-            key={portal}
-            style={{
-              padding: '26px 16px',
-              textAlign: 'center',
-              font: '500 15px/1 var(--font-space-grotesk), sans-serif',
-              color: 'rgba(38,37,30,0.55)',
-              letterSpacing: '-0.2px',
-              borderRight: i < PORTALS.length - 1 ? '1px solid rgba(38,37,30,0.06)' : 'none',
-              transition: 'color 200ms ease',
-              cursor: 'default',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = '#26251e'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = 'rgba(38,37,30,0.55)'
-            }}
-          >
-            {portal}
-          </div>
-        ))}
+        <span
+          style={{
+            font: '400 12px/1 var(--font-dm-sans), sans-serif',
+            color: '#aaaaaa',
+            whiteSpace: 'nowrap',
+            marginRight: 36,
+            letterSpacing: '0.01em',
+          }}
+        >
+          kompatibel mit
+        </span>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 36,
+            overflow: 'hidden',
+          }}
+        >
+          {PORTALS.map((name) => (
+            <span
+              key={name}
+              style={{
+                font: '500 13px/1 var(--font-dm-sans), sans-serif',
+                color: '#bbbbbb',
+                whiteSpace: 'nowrap',
+                letterSpacing: '-0.01em',
+              }}
+            >
+              {name}
+            </span>
+          ))}
+        </div>
       </div>
     </section>
   )

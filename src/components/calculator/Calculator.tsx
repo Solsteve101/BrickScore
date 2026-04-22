@@ -137,7 +137,7 @@ function InfoTip({ content, size = 11 }: { content: string; size?: number }) {
             padding: '10px 12px', borderRadius: 8,
             background: '#26251e', color: '#f2f1ed',
             boxShadow: '0 14px 36px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.2)',
-            font: '400 12px/1.45 var(--font-space-grotesk), sans-serif',
+            font: '400 12px/1.45 var(--font-dm-sans), sans-serif',
             letterSpacing: 0.05, textAlign: 'left', pointerEvents: 'auto',
           }}
         >
@@ -149,10 +149,13 @@ function InfoTip({ content, size = 11 }: { content: string; size?: number }) {
   )
 }
 
-function Pill({ tone = 'neutral', children, dot = false }: { tone?: DealTone; children: React.ReactNode; dot?: boolean }) {
-  const tones: Record<DealTone, { bg: string; fg: string; dot: string }> = {
-    neutral: { bg: '#e6e5e0', fg: 'rgba(38,37,30,0.7)', dot: 'rgba(38,37,30,0.4)' },
-    good:    { bg: 'rgba(31,138,101,0.14)', fg: '#1f8a65', dot: '#1f8a65' },
+type ExtTone = DealTone | 'elite'
+
+function Pill({ tone = 'neutral', children, dot = false }: { tone?: ExtTone; children: React.ReactNode; dot?: boolean }) {
+  const tones: Record<ExtTone, { bg: string; fg: string; dot: string }> = {
+    neutral: { bg: '#ebebeb', fg: 'rgba(38,37,30,0.7)', dot: 'rgba(38,37,30,0.4)' },
+    good:    { bg: 'rgba(31,138,101,0.13)', fg: '#1a6a45', dot: '#1f8a65' },
+    elite:   { bg: 'rgba(184,146,26,0.13)', fg: '#8b6914', dot: '#b8921a' },
     warn:    { bg: 'rgba(192,133,50,0.16)', fg: '#8b5f22', dot: '#c08532' },
     bad:     { bg: 'rgba(207,45,86,0.12)', fg: '#cf2d56', dot: '#cf2d56' },
   }
@@ -162,7 +165,7 @@ function Pill({ tone = 'neutral', children, dot = false }: { tone?: DealTone; ch
       display: 'inline-flex', alignItems: 'center', gap: 6,
       padding: '5px 11px', borderRadius: 9999,
       background: t.bg, color: t.fg,
-      font: '500 13px/1 var(--font-space-grotesk), sans-serif',
+      font: '500 13px/1 var(--font-dm-sans), sans-serif',
     }}>
       {dot && <span style={{ width: 6, height: 6, borderRadius: '50%', background: t.dot }} />}
       {children}
@@ -197,7 +200,7 @@ function NumberInput({
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
       {label && (
         <label style={{
-          font: '500 10.5px/1.27 var(--font-space-grotesk), sans-serif',
+          font: '500 10.5px/1.27 var(--font-dm-sans), sans-serif',
           letterSpacing: 0.6, textTransform: 'uppercase',
           color: 'rgba(38,37,30,0.5)',
           display: 'inline-flex', alignItems: 'center', gap: 5,
@@ -209,8 +212,8 @@ function NumberInput({
       <div style={{
         display: 'flex', alignItems: 'center', gap: 6,
         padding: '11px 12px', borderRadius: 8,
-        background: '#fafaf7',
-        border: `1px solid ${focused ? 'rgba(38,37,30,0.35)' : 'rgba(38,37,30,0.1)'}`,
+        background: '#ffffff',
+        border: `1px solid ${focused ? '#0a0a0a' : '#e5e5e5'}`,
         transition: 'border-color 150ms ease',
       }}>
         {prefix && (
@@ -241,7 +244,7 @@ function NumberInput({
         )}
       </div>
       {hint && (
-        <span style={{ font: '400 11.5px/1.35 var(--font-space-grotesk), sans-serif', color: 'rgba(38,37,30,0.45)' }}>
+        <span style={{ font: '400 11.5px/1.35 var(--font-dm-sans), sans-serif', color: 'rgba(38,37,30,0.45)' }}>
           {hint}
         </span>
       )}
@@ -304,8 +307,8 @@ function CityInput({ value, stateCode, onPick }: {
       <div style={{
         display: 'flex', alignItems: 'center', gap: 6,
         padding: '11px 12px', borderRadius: 8,
-        background: '#fafaf7',
-        border: `1px solid ${focus ? 'rgba(38,37,30,0.35)' : 'rgba(38,37,30,0.1)'}`,
+        background: '#ffffff',
+        border: `1px solid ${focus ? '#0a0a0a' : '#e5e5e5'}`,
         transition: 'border-color 150ms ease',
       }}>
         <span style={{ color: 'rgba(38,37,30,0.5)', display: 'inline-flex' }}>
@@ -323,7 +326,7 @@ function CityInput({ value, stateCode, onPick }: {
           onKeyDown={onKeyDown}
           style={{
             flex: 1, border: 'none', outline: 'none', background: 'transparent',
-            fontFamily: 'var(--font-space-grotesk), system-ui, sans-serif',
+            fontFamily: 'var(--font-dm-sans), system-ui, sans-serif',
             fontWeight: 500, fontSize: 14.5, color: '#26251e',
             width: '100%', minWidth: 0,
           }}
@@ -342,8 +345,8 @@ function CityInput({ value, stateCode, onPick }: {
       {open && matches.length > 0 && (
         <div style={{
           position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0,
-          background: '#f7f7f4', borderRadius: 8,
-          boxShadow: '0 14px 32px rgba(0,0,0,0.10), 0 0 0 1px rgba(38,37,30,0.12)',
+          background: '#ffffff', borderRadius: 8,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.07), 0 0 0 1px #e5e5e5',
           zIndex: 30, padding: 4, maxHeight: 420, overflowY: 'auto',
           overscrollBehavior: 'contain',
         }}>
@@ -362,7 +365,7 @@ function CityInput({ value, stateCode, onPick }: {
                   transition: 'background 120ms ease',
                 }}
               >
-                <span style={{ font: '500 13.5px var(--font-space-grotesk), sans-serif', color: '#26251e' }}>{m.city}</span>
+                <span style={{ font: '500 13.5px var(--font-dm-sans), sans-serif', color: '#26251e' }}>{m.city}</span>
                 <span style={{ font: '400 11px var(--font-jetbrains-mono), monospace', color: 'rgba(38,37,30,0.5)' }}>{stName}</span>
               </div>
             )
@@ -395,8 +398,8 @@ function NkPctField({ value, onChange, disabled }: { value: number; onChange: (v
     <div style={{
       display: 'inline-flex', alignItems: 'center', gap: 3,
       padding: '5px 8px', borderRadius: 6,
-      background: disabled ? 'rgba(38,37,30,0.04)' : '#fafaf7',
-      border: `1px solid ${focused ? 'rgba(38,37,30,0.35)' : 'rgba(38,37,30,0.1)'}`,
+      background: disabled ? 'rgba(38,37,30,0.03)' : '#ffffff',
+      border: `1px solid ${focused ? '#0a0a0a' : '#e5e5e5'}`,
       opacity: disabled ? 0.5 : 1,
       transition: 'border-color 150ms ease, opacity 150ms ease',
       width: 70,
@@ -441,7 +444,7 @@ function NebenkostenEditor({ state, includeMakler, onToggleMakler, overrides, on
   const hasOverride = overrides && Object.keys(overrides).length > 0
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 0, borderRadius: 8, background: '#fafaf7', border: '1px solid rgba(38,37,30,0.1)', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 0, borderRadius: 8, background: '#ffffff', border: '1px solid #e5e5e5', overflow: 'hidden' }}>
       <button
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
@@ -462,7 +465,7 @@ function NebenkostenEditor({ state, includeMakler, onToggleMakler, overrides, on
             </span>
           </span>
         </div>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, font: '500 11.5px/1 var(--font-space-grotesk), sans-serif', color: 'rgba(38,37,30,0.55)' }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, font: '500 11.5px/1 var(--font-dm-sans), sans-serif', color: 'rgba(38,37,30,0.55)' }}>
           {open ? 'Weniger' : 'Mehr'}
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 180ms ease' }}>
             <polyline points="6 9 12 15 18 9" />
@@ -476,7 +479,7 @@ function NebenkostenEditor({ state, includeMakler, onToggleMakler, overrides, on
             {hasOverride && (
               <button
                 onClick={(e) => { e.stopPropagation(); onReset() }}
-                style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, color: 'rgba(38,37,30,0.5)', font: '500 10.5px/1 var(--font-space-grotesk), sans-serif', letterSpacing: 0.4, textTransform: 'uppercase' }}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, color: 'rgba(38,37,30,0.5)', font: '500 10.5px/1 var(--font-dm-sans), sans-serif', letterSpacing: 0.4, textTransform: 'uppercase' }}
               >
                 Zurücksetzen
               </button>
@@ -497,8 +500,8 @@ function NebenkostenEditor({ state, includeMakler, onToggleMakler, overrides, on
                 opacity: dim ? 0.45 : 1, transition: 'opacity 150ms ease',
               }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0 }}>
-                  <span style={{ font: '500 12.5px/1.25 var(--font-space-grotesk), sans-serif', color: '#26251e' }}>{row.label}</span>
-                  <span style={{ font: '400 10.5px/1.2 var(--font-space-grotesk), sans-serif', color: 'rgba(38,37,30,0.45)' }}>
+                  <span style={{ font: '500 12.5px/1.25 var(--font-dm-sans), sans-serif', color: '#26251e' }}>{row.label}</span>
+                  <span style={{ font: '400 10.5px/1.2 var(--font-dm-sans), sans-serif', color: 'rgba(38,37,30,0.45)' }}>
                     {row.key === 'grest' && !state ? 'nach Bundesland · frei eintragen' : row.sub}
                   </span>
                 </div>
@@ -544,7 +547,7 @@ function NebenkostenEditor({ state, includeMakler, onToggleMakler, overrides, on
           })}
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', columnGap: 10, alignItems: 'baseline', paddingTop: 10, marginTop: 4, borderTop: '1px solid rgba(38,37,30,0.15)' }}>
-            <span style={{ font: '500 10.5px/1 var(--font-space-grotesk), sans-serif', letterSpacing: 0.6, textTransform: 'uppercase', color: '#26251e' }}>Summe</span>
+            <span style={{ font: '500 10.5px/1 var(--font-dm-sans), sans-serif', letterSpacing: 0.6, textTransform: 'uppercase', color: '#26251e' }}>Summe</span>
             <span style={{ fontFamily: 'var(--font-jetbrains-mono), monospace', fontWeight: 600, fontSize: 13, color: '#26251e', fontVariantNumeric: 'tabular-nums', textAlign: 'right', paddingRight: 22 }}>
               {totalPct.toFixed(2).replace('.', ',')} %
             </span>
@@ -601,11 +604,11 @@ function ListingImport({ url, onUrlChange }: { url: string; onUrlChange: (url: s
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-        <span style={{ font: '500 10.5px/1.27 var(--font-space-grotesk), sans-serif', letterSpacing: 0.6, textTransform: 'uppercase', color: '#26251e' }}>
+        <span style={{ font: '500 10.5px/1.27 var(--font-dm-sans), sans-serif', letterSpacing: 0.6, textTransform: 'uppercase', color: '#26251e' }}>
           Inserat
         </span>
         {source && (
-          <span style={{ font: '500 10px/1 var(--font-space-grotesk), sans-serif', letterSpacing: 0.4, textTransform: 'uppercase', color: source.color, background: source.bg, padding: '4px 7px', borderRadius: 4 }}>
+          <span style={{ font: '500 10px/1 var(--font-dm-sans), sans-serif', letterSpacing: 0.4, textTransform: 'uppercase', color: source.color, background: source.bg, padding: '4px 7px', borderRadius: 4 }}>
             {source.label}
           </span>
         )}
@@ -627,10 +630,10 @@ function ListingImport({ url, onUrlChange }: { url: string; onUrlChange: (url: s
           onChange={(e) => onUrlChange(e.target.value)}
           placeholder="Inserats-Link einfügen…"
           spellCheck={false}
-          style={{ border: 'none', outline: 'none', background: 'transparent', padding: 0, margin: 0, flex: 1, minWidth: 0, font: '400 13px/1.35 var(--font-space-grotesk), sans-serif', color: '#26251e', textOverflow: 'ellipsis' }}
+          style={{ border: 'none', outline: 'none', background: 'transparent', padding: 0, margin: 0, flex: 1, minWidth: 0, font: '400 13px/1.35 var(--font-dm-sans), sans-serif', color: '#26251e', textOverflow: 'ellipsis' }}
         />
         {status === 'importing' && (
-          <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'rgba(38,37,30,0.55)', font: '500 11px/1 var(--font-space-grotesk), sans-serif' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'rgba(38,37,30,0.55)', font: '500 11px/1 var(--font-dm-sans), sans-serif' }}>
             <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ animation: 'vestora-spin 0.9s linear infinite' }}>
               <circle cx="8" cy="8" r="6" stroke="currentColor" strokeOpacity="0.25" strokeWidth="2" />
               <path d="M14 8a6 6 0 0 0-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -639,7 +642,7 @@ function ListingImport({ url, onUrlChange }: { url: string; onUrlChange: (url: s
           </span>
         )}
         {status === 'done' && (
-          <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#1f8a65', font: '500 11px/1 var(--font-space-grotesk), sans-serif' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#1f8a65', font: '500 11px/1 var(--font-dm-sans), sans-serif' }}>
             <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
               <path d="M3 8.5l3.2 3.2L13 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
@@ -655,7 +658,7 @@ function ListingImport({ url, onUrlChange }: { url: string; onUrlChange: (url: s
         )}
       </div>
 
-      <p style={{ margin: 0, font: '400 11px/1.4 var(--font-space-grotesk), sans-serif', color: 'rgba(38,37,30,0.5)' }}>
+      <p style={{ margin: 0, font: '400 11px/1.4 var(--font-dm-sans), sans-serif', color: 'rgba(38,37,30,0.5)' }}>
         Unterstützt Ihren Immobilienanbieter des Vertrauens.
       </p>
     </div>
@@ -668,8 +671,8 @@ function ListingImport({ url, onUrlChange }: { url: string; onUrlChange: (url: s
 
 function CashflowChart({ rows, termYear }: { rows: ProjectionRow[]; termYear: number }) {
   const [hover, setHover] = useState<number | null>(null)
-  const W = 640, H = 220
-  const padL = 44, padR = 16, padT = 16, padB = 30
+  const W = 640, H = 160
+  const padL = 44, padR = 16, padT = 22, padB = 30
   const plotW = W - padL - padR
   const plotH = H - padT - padB
 
@@ -714,7 +717,7 @@ function CashflowChart({ rows, termYear }: { rows: ProjectionRow[]; termYear: nu
         {termX != null && termYear < years && (
           <g>
             <line x1={termX} x2={termX} y1={padT} y2={H - padB} stroke="rgba(38,37,30,0.45)" strokeDasharray="4 4" strokeWidth="1" />
-            <text x={termX - 5} y={padT + 11} textAnchor="end" style={{ font: '500 9.5px var(--font-space-grotesk), sans-serif', fill: 'rgba(38,37,30,0.55)', letterSpacing: 0.4, textTransform: 'uppercase' }}>
+            <text x={termX} y={padT - 4} textAnchor="middle" style={{ font: '500 10px var(--font-dm-sans), sans-serif', fill: 'rgba(38,37,30,0.4)', letterSpacing: 0.7, textTransform: 'uppercase' }}>
               Laufzeitende
             </text>
           </g>
@@ -762,7 +765,7 @@ function CashflowChart({ rows, termYear }: { rows: ProjectionRow[]; termYear: nu
               <line x1={cx} x2={cx} y1={padT} y2={H - padB} stroke="rgba(38,37,30,0.25)" strokeDasharray="2 2" />
               <circle cx={cx} cy={cy} r="5" fill={pos ? '#1f8a65' : '#cf2d56'} stroke="#f7f7f4" strokeWidth="2" />
               <rect x={bx} y={by} width={boxW} height={boxH} rx={6} fill="#26251e" />
-              <text x={bx + 10} y={by + 17} style={{ font: '500 10px var(--font-space-grotesk)', fill: 'rgba(242,241,237,0.6)', letterSpacing: 0.5, textTransform: 'uppercase' }}>
+              <text x={bx + 10} y={by + 17} style={{ font: '500 10px var(--font-dm-sans)', fill: 'rgba(242,241,237,0.6)', letterSpacing: 0.5, textTransform: 'uppercase' }}>
                 Jahr {row.year}{afterTerm ? ' · Projektion' : ''}
               </text>
               <text x={bx + 10} y={by + 34} style={{ font: '500 13px var(--font-jetbrains-mono), monospace', fill: pos ? '#9fd9b9' : '#f5a5b7', fontVariantNumeric: 'tabular-nums' }}>
@@ -778,8 +781,8 @@ function CashflowChart({ rows, termYear }: { rows: ProjectionRow[]; termYear: nu
 
 function AmortChart({ rows, loan, equity, termYear }: { rows: ProjectionRow[]; loan: number; equity: number; termYear: number }) {
   const [hover, setHover] = useState<number | null>(null)
-  const W = 640, H = 220
-  const padL = 44, padR = 16, padT = 16, padB = 30
+  const W = 640, H = 160
+  const padL = 44, padR = 16, padT = 22, padB = 30
   const plotW = W - padL - padR
   const plotH = H - padT - padB
   const years = rows.length
@@ -808,10 +811,10 @@ function AmortChart({ rows, loan, equity, termYear }: { rows: ProjectionRow[]; l
           </g>
         ))}
 
-        <path d={buildArea(balancePts, yOf(0))} fill="#c0a8dd" opacity="0.35" />
-        <path d={buildPath(balancePts)} stroke="#8a6cb5" strokeWidth="1.75" fill="none" />
-        <path d={buildArea(tilgungPts, yOf(0))} fill="#9fc9a2" opacity="0.4" />
-        <path d={buildPath(tilgungPts)} stroke="#3f8a52" strokeWidth="1.75" fill="none" />
+        <path d={buildArea(balancePts, yOf(0))} fill="#D1D5DB" opacity="0.5" />
+        <path d={buildPath(balancePts)} stroke="#9CA3AF" strokeWidth="1.75" fill="none" />
+        <path d={buildArea(tilgungPts, yOf(0))} fill="#2E7D32" opacity="0.3" />
+        <path d={buildPath(tilgungPts)} stroke="#2E7D32" strokeWidth="1.75" fill="none" />
 
         {termYear != null && termYear < years && (() => {
           const tx = xOf(termYear)
@@ -819,7 +822,7 @@ function AmortChart({ rows, loan, equity, termYear }: { rows: ProjectionRow[]; l
             <g>
               <line x1={tx} x2={tx} y1={padT} y2={H - padB} stroke="rgba(38,37,30,0.5)" strokeDasharray="4 4" strokeWidth="1" />
               <rect x={tx} y={padT} width={W - padR - tx} height={plotH} fill="rgba(38,37,30,0.035)" />
-              <text x={tx + 6} y={padT + 11} style={{ font: '500 9.5px var(--font-space-grotesk), sans-serif', fill: 'rgba(38,37,30,0.55)', letterSpacing: 0.4, textTransform: 'uppercase' }}>
+              <text x={W - padR} y={padT - 4} textAnchor="end" style={{ font: '500 10px var(--font-dm-sans), sans-serif', fill: 'rgba(38,37,30,0.4)', letterSpacing: 0.7, textTransform: 'uppercase' }}>
                 Laufzeitende · Projektion
               </text>
             </g>
@@ -829,7 +832,7 @@ function AmortChart({ rows, loan, equity, termYear }: { rows: ProjectionRow[]; l
         {equity > 0 && equity <= vMax && (
           <g>
             <line x1={padL} x2={W - padR} y1={yOf(equity)} y2={yOf(equity)} stroke="#26251e" strokeDasharray="3 3" strokeWidth="1" opacity="0.55" />
-            <text x={W - padR - 4} y={yOf(equity) - 4} textAnchor="end" style={{ font: '500 10px var(--font-space-grotesk)', fill: '#26251e', letterSpacing: 0.4, textTransform: 'uppercase' }}>
+            <text x={padL + 5} y={yOf(equity) - 5} textAnchor="start" style={{ font: '500 10px var(--font-dm-sans)', fill: 'rgba(38,37,30,0.55)', letterSpacing: 0.7, textTransform: 'uppercase' }}>
               Eigenkapital
             </text>
           </g>
@@ -859,20 +862,20 @@ function AmortChart({ rows, loan, equity, termYear }: { rows: ProjectionRow[]; l
           return (
             <g style={{ pointerEvents: 'none' }}>
               <line x1={cx} x2={cx} y1={padT} y2={H - padB} stroke="rgba(38,37,30,0.25)" strokeDasharray="2 2" />
-              <circle cx={cx} cy={yOf(d.balance)} r="4" fill="#8a6cb5" stroke="#f2f1ed" strokeWidth="1.5" />
-              <circle cx={cx} cy={yOf(d.tilgungSum)} r="4" fill="#3f8a52" stroke="#f2f1ed" strokeWidth="1.5" />
+              <circle cx={cx} cy={yOf(d.balance)} r="4" fill="#9CA3AF" stroke="#ffffff" strokeWidth="1.5" />
+              <circle cx={cx} cy={yOf(d.tilgungSum)} r="4" fill="#2E7D32" stroke="#ffffff" strokeWidth="1.5" />
               <rect x={bx} y={by} width={boxW} height={boxH} rx={6} fill="#26251e" />
-              <text x={bx + 10} y={by + 16} style={{ font: '500 10px var(--font-space-grotesk)', fill: 'rgba(242,241,237,0.55)', letterSpacing: 0.5, textTransform: 'uppercase' }}>
+              <text x={bx + 10} y={by + 16} style={{ font: '500 10px var(--font-dm-sans)', fill: 'rgba(242,241,237,0.55)', letterSpacing: 0.5, textTransform: 'uppercase' }}>
                 Jahr {d.year}
               </text>
               <g>
-                <rect x={bx + 10} y={by + 23} width="6" height="6" rx="1" fill="#c0a8dd" />
+                <rect x={bx + 10} y={by + 23} width="6" height="6" rx="1" fill="#D1D5DB" />
                 <text x={bx + 22} y={by + 29} style={{ font: '500 11px var(--font-jetbrains-mono), monospace', fill: '#f2f1ed' }}>
                   Restschuld {fmtEUR(d.balance)}
                 </text>
               </g>
               <g>
-                <rect x={bx + 10} y={by + 37} width="6" height="6" rx="1" fill="#9fc9a2" />
+                <rect x={bx + 10} y={by + 37} width="6" height="6" rx="1" fill="#2E7D32" />
                 <text x={bx + 22} y={by + 43} style={{ font: '500 11px var(--font-jetbrains-mono), monospace', fill: '#f2f1ed' }}>
                   Getilgt {fmtEUR(d.tilgungSum)}
                 </text>
@@ -892,7 +895,7 @@ function AmortChart({ rows, loan, equity, termYear }: { rows: ProjectionRow[]; l
 function InputGroup({ label, children, tight = false }: { label: string; children: React.ReactNode; tight?: boolean }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: tight ? 8 : 10 }}>
-      <span style={{ font: '500 10.5px/1.27 var(--font-space-grotesk), sans-serif', letterSpacing: 0.6, textTransform: 'uppercase', color: '#26251e' }}>
+      <span style={{ font: '500 10.5px/1.27 var(--font-dm-sans), sans-serif', letterSpacing: 0.6, textTransform: 'uppercase', color: '#26251e' }}>
         {label}
       </span>
       {children}
@@ -906,26 +909,26 @@ function Divider() {
 
 function KpiCard({ label, value, hint, color = '#26251e', info }: { label: string; value: string; hint?: string; color?: string; info?: string }) {
   return (
-    <div style={{ padding: 18, borderRadius: 10, background: '#f2f1ed', boxShadow: '0 0 0 1px rgba(38,37,30,0.08)', display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
-      <span style={{ font: '500 10.5px/1.27 var(--font-space-grotesk), sans-serif', letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(38,37,30,0.5)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+    <div style={{ padding: 18, borderRadius: 10, background: '#ffffff', border: '1px solid #e5e5e5', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
+      <span style={{ font: '500 10.5px/1.27 var(--font-dm-sans), sans-serif', letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(38,37,30,0.5)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
         <span>{label}</span>
         {info && <InfoTip content={info} />}
       </span>
       <span style={{ fontFamily: 'var(--font-jetbrains-mono), monospace', fontWeight: 500, fontSize: 22, color, fontVariantNumeric: 'tabular-nums', letterSpacing: -0.6, transition: 'color 250ms ease' }}>
         {value}
       </span>
-      {hint && <span style={{ font: '400 12px/1.35 var(--font-space-grotesk), sans-serif', color: 'rgba(38,37,30,0.5)' }}>{hint}</span>}
+      {hint && <span style={{ font: '400 12px/1.35 var(--font-dm-sans), sans-serif', color: 'rgba(38,37,30,0.5)' }}>{hint}</span>}
     </div>
   )
 }
 
-function ScoreDial({ score = 0, size = 160, tone = 'good' }: { score?: number; size?: number; tone?: DealTone }) {
+function ScoreDial({ score = 0, size = 160, tone = 'good' }: { score?: number; size?: number; tone?: ExtTone }) {
   const TICKS = 60
   const radius = size / 2
   const inner = radius - 22
   const outer = radius - 6
   const activeCount = Math.round((score / 100) * TICKS)
-  const colors: Record<DealTone, string> = { good: '#1f8a65', warn: '#c08532', bad: '#cf2d56', neutral: 'rgba(38,37,30,0.5)' }
+  const colors: Record<ExtTone, string> = { good: '#1f8a65', elite: '#b8921a', warn: '#c08532', bad: '#cf2d56', neutral: 'rgba(38,37,30,0.5)' }
   const activeColor = colors[tone]
   const dimColor = 'rgba(38,37,30,0.14)'
 
@@ -945,10 +948,10 @@ function ScoreDial({ score = 0, size = 160, tone = 'good' }: { score?: number; s
     <div style={{ width: size, height: size, flexShrink: 0 }}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         {ticks}
-        <text x={radius} y={radius} textAnchor="middle" dominantBaseline="central" style={{ fontFamily: 'var(--font-space-grotesk), sans-serif', fontWeight: 500, fontSize: size * 0.32, fill: activeColor, letterSpacing: -1, transition: 'fill 260ms ease' }}>
+        <text x={radius} y={radius} textAnchor="middle" dominantBaseline="central" style={{ fontFamily: 'var(--font-dm-sans), sans-serif', fontWeight: 500, fontSize: size * 0.32, fill: activeColor, letterSpacing: -1, transition: 'fill 260ms ease' }}>
           {score}
         </text>
-        <text x={radius} y={radius + size * 0.19} textAnchor="middle" dominantBaseline="central" style={{ fontFamily: 'var(--font-space-grotesk), sans-serif', fontWeight: 500, fontSize: size * 0.085, fill: 'rgba(38,37,30,0.42)', letterSpacing: 0.6, textTransform: 'uppercase' }}>
+        <text x={radius} y={radius + size * 0.19} textAnchor="middle" dominantBaseline="central" style={{ fontFamily: 'var(--font-dm-sans), sans-serif', fontWeight: 500, fontSize: size * 0.085, fill: 'rgba(38,37,30,0.42)', letterSpacing: 0.6, textTransform: 'uppercase' }}>
           von 100
         </text>
       </svg>
@@ -959,7 +962,7 @@ function ScoreDial({ score = 0, size = 160, tone = 'good' }: { score?: number; s
 function SumRow({ k, v, bold, color }: { k: string; v: string; bold?: boolean; color?: string }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
-      <span style={{ font: '500 10.5px/1.27 var(--font-space-grotesk), sans-serif', letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(38,37,30,0.5)' }}>
+      <span style={{ font: '500 10.5px/1.27 var(--font-dm-sans), sans-serif', letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(38,37,30,0.5)' }}>
         {k}
       </span>
       <span style={{ fontFamily: 'var(--font-jetbrains-mono), monospace', fontWeight: bold ? 600 : 500, fontSize: bold ? 17 : 15, color: color || '#26251e', fontVariantNumeric: 'tabular-nums', letterSpacing: -0.3 }}>
@@ -972,7 +975,7 @@ function SumRow({ k, v, bold, color }: { k: string; v: string; bold?: boolean; c
 function WaterRow({ color, label, value, width, strong = false, valueColor }: { color: string; label: string; value: string; width: number; strong?: boolean; valueColor?: string }) {
   return (
     <>
-      <span style={{ font: '500 10.5px/1.27 var(--font-space-grotesk), sans-serif', letterSpacing: 0.6, textTransform: 'uppercase', color: strong ? '#26251e' : 'rgba(38,37,30,0.55)', display: 'flex', alignItems: 'center', gap: 8 }}>
+      <span style={{ font: '500 10.5px/1.27 var(--font-dm-sans), sans-serif', letterSpacing: 0.6, textTransform: 'uppercase', color: strong ? '#26251e' : 'rgba(38,37,30,0.55)', display: 'flex', alignItems: 'center', gap: 8 }}>
         <span style={{ width: 8, height: 8, borderRadius: 2, background: color }} />{label}
       </span>
       <span style={{ height: 8, borderRadius: 4, background: 'rgba(38,37,30,0.06)', overflow: 'hidden', display: 'block' }}>
@@ -989,7 +992,7 @@ function LegendItem({ color, label }: { color: string; label: string }) {
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
       <span style={{ width: 10, height: 10, borderRadius: 2, background: color }} />
-      <span style={{ font: '500 11.5px/1 var(--font-space-grotesk), sans-serif', color: 'rgba(38,37,30,0.65)' }}>{label}</span>
+      <span style={{ font: '500 11.5px/1 var(--font-dm-sans), sans-serif', color: 'rgba(38,37,30,0.65)' }}>{label}</span>
     </span>
   )
 }
@@ -1033,6 +1036,9 @@ export default function Calculator() {
   const rows = project10yr(r, projYrs)
   const score = dealScore(r)
   const cfBadge = r.monthlyCashflow >= 0 ? '#1f8a65' : '#cf2d56'
+  const isElite = score >= 95
+  const extTone: ExtTone = isElite ? 'elite' : state.tone
+  const extLabel = isElite ? 'Exzellenter Deal' : state.label
 
   const showToast = (msg: string) => {
     setToast(msg)
@@ -1090,7 +1096,7 @@ export default function Calculator() {
         <div style={{
           position: 'fixed', bottom: 32, left: '50%', transform: 'translateX(-50%)',
           background: '#26251e', color: '#f7f7f4', padding: '10px 18px', borderRadius: 9999,
-          font: '500 13px var(--font-space-grotesk), sans-serif', zIndex: 60,
+          font: '500 13px var(--font-dm-sans), sans-serif', zIndex: 60,
           boxShadow: '0 14px 32px rgba(0,0,0,0.2)',
           animation: 'v-fade-in 200ms ease',
         }}>
@@ -1098,10 +1104,25 @@ export default function Calculator() {
         </div>
       )}
 
-      <div style={{ padding: '28px 24px 60px', display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 2fr', gap: 24 }}>
+      <div style={{ padding: '28px 24px 28px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+        {/* ── ACTION BUTTONS — own row, above grid, not part of grid ── */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+          <button onClick={onSave} className="v-actionbtn">
+            <VIcon name="bookmark" size={14} />
+            <span>Deal speichern</span>
+          </button>
+          <button onClick={onExport} className="v-actionbtn">
+            <VIcon name="download" size={14} />
+            <span>Deal exportieren</span>
+          </button>
+        </div>
+
+        {/* ── CALCULATOR GRID ── */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 2fr', gap: 24 }}>
 
         {/* ── SIDEBAR ── */}
-        <aside style={{ alignSelf: 'start', position: 'sticky', top: 88, padding: 16, borderRadius: 12, background: '#f7f7f4', boxShadow: '0 0 0 1px rgba(38,37,30,0.08)', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <aside style={{ alignSelf: 'start', position: 'sticky', top: 88, padding: 16, borderRadius: 12, background: '#ffffff', border: '1px solid #e5e5e5', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
           <ListingImport url={inputs.listingUrl} onUrlChange={upd('listingUrl')} />
           <Divider />
@@ -1129,7 +1150,7 @@ export default function Calculator() {
           <InputGroup label="Kosten">
             <NumberInput label="Kaufpreis" prefix="€" value={inputs.price} onChange={upd('price')} info="Der mit dem Verkäufer vereinbarte Preis für die Immobilie — ohne Kaufnebenkosten (Grunderwerbsteuer, Notar, Grundbuch, Makler)." />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <label style={{ font: '500 10.5px/1.27 var(--font-space-grotesk), sans-serif', letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(38,37,30,0.5)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+              <label style={{ font: '500 10.5px/1.27 var(--font-dm-sans), sans-serif', letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(38,37,30,0.5)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
                 <span>Nebenkosten</span>
                 <InfoTip content="Grunderwerbsteuer, Notar, Grundbuch und optional Makler. Werte stammen aus den Standards des gewählten Bundeslands und sind pro Position einzeln editierbar." />
               </label>
@@ -1172,23 +1193,11 @@ export default function Calculator() {
         {/* ── MAIN ── */}
         <main style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
 
-          {/* Action buttons */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, alignItems: 'center' }}>
-            <button onClick={onSave} className="v-actionbtn">
-              <VIcon name="bookmark" size={14} />
-              <span>Deal speichern</span>
-            </button>
-            <button onClick={onExport} className="v-actionbtn">
-              <VIcon name="download" size={14} />
-              <span>Deal exportieren</span>
-            </button>
-          </div>
-
           {/* Verdict + Score cards */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <section style={{ padding: '20px 24px', borderRadius: 12, background: '#f7f7f4', boxShadow: '0 28px 70px rgba(0,0,0,0.10), 0 12px 28px rgba(0,0,0,0.08), 0 0 0 1px rgba(38,37,30,0.08)', display: 'flex', flexDirection: 'column', gap: 10, justifyContent: 'center', alignItems: 'center', textAlign: 'center', minWidth: 0 }}>
-              <Pill tone={state.tone} dot>{state.label}</Pill>
-              <h2 style={{ margin: 0, fontFamily: 'var(--font-space-grotesk), sans-serif', fontWeight: 400, fontSize: 44, lineHeight: 1.05, letterSpacing: -1, color: '#26251e' }}>
+            <section style={{ padding: '20px 24px', borderRadius: 12, background: '#ffffff', border: '1px solid #e5e5e5', boxShadow: '0 4px 16px rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column', gap: 10, justifyContent: 'center', alignItems: 'center', textAlign: 'center', minWidth: 0 }}>
+              <Pill tone={extTone} dot>{extLabel}</Pill>
+              <h2 style={{ margin: 0, fontFamily: 'var(--font-dm-sans), sans-serif', fontWeight: 400, fontSize: 44, lineHeight: 1.05, letterSpacing: -1, color: '#26251e' }}>
                 <span style={{ color: cfBadge, fontVariantNumeric: 'tabular-nums', transition: 'color 250ms ease', display: 'block' }}>
                   {fmtEUR(r.monthlyCashflow, { sign: true })}
                 </span>
@@ -1198,12 +1207,12 @@ export default function Calculator() {
               </h2>
             </section>
 
-            <section style={{ padding: '20px 24px', borderRadius: 12, background: '#f7f7f4', boxShadow: '0 28px 70px rgba(0,0,0,0.10), 0 12px 28px rgba(0,0,0,0.08), 0 0 0 1px rgba(38,37,30,0.08)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, minWidth: 0 }}>
-              <span style={{ font: '500 10.5px/1 var(--font-space-grotesk), sans-serif', letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(38,37,30,0.5)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <section style={{ padding: '20px 24px', borderRadius: 12, background: '#ffffff', border: '1px solid #e5e5e5', boxShadow: '0 4px 16px rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, minWidth: 0 }}>
+              <span style={{ font: '500 10.5px/1 var(--font-dm-sans), sans-serif', letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(38,37,30,0.5)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                 Deal-Score
                 <InfoTip content="Zusammenfassende Bewertung auf Basis von Cashflow, Netto-Rendite, Cash-on-Cash und LTV. Maximal 100 Punkte." />
               </span>
-              <ScoreDial score={score} tone={state.tone} size={160} />
+              <ScoreDial score={score} tone={extTone} size={160} />
             </section>
           </div>
 
@@ -1212,13 +1221,13 @@ export default function Calculator() {
             <KpiCard label="Monats-Cashflow" value={fmtEUR(r.monthlyCashflow, { sign: true })} color={r.monthlyCashflow >= 0 ? '#1f8a65' : '#cf2d56'} hint="Effektiv pro Monat." info="Monatlicher Überschuss nach Abzug von laufenden Kosten und Kapitaldienst." />
             <KpiCard label="Jahres-Cashflow" value={fmtEUR(r.annualCashflow, { sign: true })} color={r.annualCashflow >= 0 ? '#1f8a65' : '#cf2d56'} hint="Vor Steuern." info="Monats-Cashflow × 12 vor Einkommensteuer." />
             <KpiCard label="Netto-Rendite" value={fmtPct(r.netYield)} hint="Nach laufenden Kosten." info="Jahresnettokaltmiete geteilt durch Gesamtinvest (Kaufpreis + Nebenkosten + Renovierung)." />
-            <KpiCard label="Cash-on-Cash" value={fmtPct(r.coc)} hint={`Auf ${fmtEUR(r.equity)} EK.`} info="Jahres-Cashflow geteilt durch eingesetztes Eigenkapital — die wichtigste Kennzahl für Investoren." />
+            <KpiCard label="Cash-on-Cash" value={fmtPct(r.coc)} color={r.coc >= 0 ? '#1f8a65' : '#cf2d56'} hint={`Auf ${fmtEUR(r.equity)} EK.`} info="Jahres-Cashflow geteilt durch eingesetztes Eigenkapital — die wichtigste Kennzahl für Investoren." />
             <KpiCard label="LTV" value={fmtPct(r.ltv)} hint="Darlehen / Kaufpreis." info="Loan-to-Value: Darlehensbetrag geteilt durch Kaufpreis. Je niedriger, desto geringer das Finanzierungsrisiko." />
           </div>
 
           {/* Deal Summary */}
-          <section style={{ padding: 18, borderRadius: 12, background: '#f2f1ed', boxShadow: '0 0 0 1px rgba(38,37,30,0.08)', display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <h3 style={{ margin: 0, font: '400 22px/1.3 var(--font-space-grotesk), sans-serif', letterSpacing: -0.11, color: '#26251e' }}>
+          <section style={{ padding: 18, borderRadius: 12, background: '#ffffff', border: '1px solid #e5e5e5', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <h3 style={{ margin: 0, font: '400 22px/1.3 var(--font-dm-sans), sans-serif', letterSpacing: -0.11, color: '#26251e' }}>
               Deal Summary
             </h3>
 
@@ -1237,10 +1246,10 @@ export default function Calculator() {
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '150px 1fr 120px', rowGap: 12, columnGap: 14, alignItems: 'center' }}>
-              <WaterRow color="#9fc9a2" label="Effektive Miete" value={fmtEUR(r.effectiveRentMon)} width={1} />
-              <WaterRow color="#dfa88f" label="Laufende Kosten" value={fmtEUR(-r.opMon)} width={r.effectiveRentMon > 0 ? r.opMon / r.effectiveRentMon : 0} valueColor="#26251e" />
-              <WaterRow color="#c0a8dd" label="Kapitaldienst" value={fmtEUR(-r.monthlyDebt)} width={r.effectiveRentMon > 0 ? r.monthlyDebt / r.effectiveRentMon : 0} valueColor="#26251e" />
-              <span style={{ font: '500 10.5px/1.27 var(--font-space-grotesk), sans-serif', letterSpacing: 0.6, textTransform: 'uppercase', color: '#26251e', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <WaterRow color="#1f8a65" label="Effektive Miete" value={fmtEUR(r.effectiveRentMon)} width={1} />
+              <WaterRow color="#e0a070" label="Laufende Kosten" value={fmtEUR(-r.opMon)} width={r.effectiveRentMon > 0 ? r.opMon / r.effectiveRentMon : 0} valueColor="#26251e" />
+              <WaterRow color="#4A4A4A" label="Kapitaldienst" value={fmtEUR(-r.monthlyDebt)} width={r.effectiveRentMon > 0 ? r.monthlyDebt / r.effectiveRentMon : 0} valueColor="#26251e" />
+              <span style={{ font: '500 10.5px/1.27 var(--font-dm-sans), sans-serif', letterSpacing: 0.6, textTransform: 'uppercase', color: '#26251e', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ width: 8, height: 8, borderRadius: 2, background: cfBadge }} />
                 Cashflow
               </span>
@@ -1254,15 +1263,29 @@ export default function Calculator() {
           </section>
 
           {/* Charts */}
-          <section style={{ padding: 18, borderRadius: 12, background: '#f7f7f4', boxShadow: '0 0 0 1px rgba(38,37,30,0.08)', display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <section style={{ padding: '12px 16px', borderRadius: 12, background: '#ffffff', border: '1px solid #e5e5e5', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: 12, flexGrow: 1 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
-              <h3 style={{ margin: 0, font: '400 22px/1.3 var(--font-space-grotesk), sans-serif', letterSpacing: -0.11, color: '#26251e' }}>
+              <h3 style={{ margin: 0, font: '400 22px/1.3 var(--font-dm-sans), sans-serif', letterSpacing: -0.11, color: '#26251e' }}>
                 {termYr}-Jahres-Projektion{' '}
                 <span style={{ color: 'rgba(38,37,30,0.4)', fontSize: 14 }}>+ {projYrs - termYr}-Jahres-Projektion</span>
               </h3>
-              <div style={{ display: 'inline-flex', padding: 3, borderRadius: 9999, background: 'rgba(38,37,30,0.06)' }}>
+              <div style={{ display: 'inline-flex', padding: 3, borderRadius: 10, background: '#e8e8e8', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)' }}>
                 {([{ k: 'amort', label: 'Restschuld vs. Tilgung' }, { k: 'cashflow', label: 'Cashflow' }] as const).map((t) => (
-                  <button key={t.k} onClick={() => setChart(t.k)} style={{ padding: '6px 14px', borderRadius: 9999, border: 'none', background: chart === t.k ? '#26251e' : 'transparent', color: chart === t.k ? '#f7f7f4' : 'rgba(38,37,30,0.65)', font: '500 12px var(--font-space-grotesk), sans-serif', cursor: 'pointer', transition: 'all 150ms ease' }}>
+                  <button
+                    key={t.k}
+                    onClick={() => setChart(t.k)}
+                    style={{
+                      padding: '7px 14px',
+                      borderRadius: 7,
+                      border: chart === t.k ? '1px solid rgba(0,0,0,0.4)' : '1px solid transparent',
+                      background: chart === t.k ? 'linear-gradient(to bottom, #3d3d3d, #141414)' : 'transparent',
+                      color: chart === t.k ? '#f7f7f4' : 'rgba(38,37,30,0.6)',
+                      font: '500 12px var(--font-dm-sans), sans-serif',
+                      cursor: 'pointer',
+                      transition: 'all 150ms ease',
+                      boxShadow: chart === t.k ? '0 1px 2px rgba(0,0,0,0.3), 0 2px 6px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.07)' : 'none',
+                    }}
+                  >
                     {t.label}
                   </button>
                 ))}
@@ -1274,7 +1297,7 @@ export default function Calculator() {
                 <>
                   <LegendItem color="#1f8a65" label="Positiver Cashflow" />
                   <LegendItem color="#cf2d56" label="Negativer Cashflow" />
-                  <span style={{ marginLeft: 'auto', font: '500 10.5px/1 var(--font-space-grotesk), sans-serif', letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(38,37,30,0.45)' }}>
+                  <span style={{ marginLeft: 'auto', font: '500 10.5px/1 var(--font-dm-sans), sans-serif', letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(38,37,30,0.45)' }}>
                     Kumuliert {rows.length}J ·{' '}
                     <span style={{ fontFamily: 'var(--font-jetbrains-mono), monospace', color: (rows[rows.length - 1]?.cumCf ?? 0) >= 0 ? '#1f8a65' : '#cf2d56', textTransform: 'none', letterSpacing: 0 }}>
                       {fmtEUR(rows[rows.length - 1]?.cumCf ?? 0, { sign: true })}
@@ -1283,9 +1306,9 @@ export default function Calculator() {
                 </>
               ) : (
                 <>
-                  <LegendItem color="#c0a8dd" label="Restschuld" />
-                  <LegendItem color="#9fc9a2" label="Getilgt (kumuliert)" />
-                  <span style={{ marginLeft: 'auto', font: '500 10.5px/1 var(--font-space-grotesk), sans-serif', letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(38,37,30,0.45)' }}>
+                  <LegendItem color="#9CA3AF" label="Restschuld" />
+                  <LegendItem color="#2E7D32" label="Getilgt (kumuliert)" />
+                  <span style={{ marginLeft: 'auto', font: '500 10.5px/1 var(--font-dm-sans), sans-serif', letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(38,37,30,0.45)' }}>
                     Restschuld nach {termYr}J ·{' '}
                     <span style={{ fontFamily: 'var(--font-jetbrains-mono), monospace', color: '#26251e', textTransform: 'none', letterSpacing: 0 }}>
                       {fmtEUR(rows[Math.min(termYr, rows.length) - 1]?.balance ?? 0)}
@@ -1303,7 +1326,9 @@ export default function Calculator() {
             </div>
           </section>
         </main>
-      </div>
+
+        </div>{/* end calculator grid */}
+      </div>{/* end flex wrapper */}
     </>
   )
 }

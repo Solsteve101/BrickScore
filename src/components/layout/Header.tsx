@@ -1,105 +1,152 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import Link from 'next/link'
 
+const NAV_LINKS = [
+  ['Für Investoren', '#features'],
+  ['Preise', '#'],
+  ['Ressourcen', '#'],
+  ['Firma', '#'],
+] as const
+
 export default function Header() {
-  const [scrolled, setScrolled] = useState(false)
-
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 4)
-    onScroll()
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
-
   return (
     <header
       style={{
         position: 'sticky',
         top: 0,
         zIndex: 40,
-        background: scrolled ? 'rgba(242,241,237,0.88)' : 'rgba(242,241,237,0.72)',
-        backdropFilter: 'blur(14px)',
-        WebkitBackdropFilter: 'blur(14px)',
-        borderBottom: `1px solid ${scrolled ? 'rgba(38,37,30,0.08)' : 'transparent'}`,
-        transition: 'background 200ms ease, border-color 200ms ease',
+        background: '#ffffff',
+        borderBottom: '1px solid #e5e5e5',
       }}
     >
       <div
         style={{
-          padding: '16px 5%',
-          display: 'flex',
+          padding: '0 48px',
+          height: 68,
+          display: 'grid',
+          gridTemplateColumns: '1fr auto 1fr',
           alignItems: 'center',
-          gap: 32,
         }}
       >
-        {/* Brand */}
-        <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
-          <svg
-            viewBox="0 0 120 100"
-            width={36}
-            height={30}
-            xmlns="http://www.w3.org/2000/svg"
-            aria-hidden="true"
-            style={{ display: 'block', flexShrink: 0 }}
-          >
-            <path d="M60,52 L28,84 L28,70 L60,38 L92,70 L92,84 Z" fill="#26251e" />
-            <path d="M52,32 L60,24 L100,24 L92,32 Z" fill="#26251e" />
+        {/* Logo — left */}
+        <Link
+          href="/"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8,
+            textDecoration: 'none',
+            justifySelf: 'start',
+          }}
+        >
+          <svg viewBox="0 0 120 100" width={22} height={18} aria-hidden="true" style={{ display: 'block', flexShrink: 0 }}>
+            <path d="M60,52 L28,84 L28,70 L60,38 L92,70 L92,84 Z" fill="#0a0a0a" />
+            <path d="M52,32 L60,24 L100,24 L92,32 Z" fill="#0a0a0a" />
           </svg>
           <span
             style={{
-              font: '500 19px/1 var(--font-space-grotesk), sans-serif',
+              font: '500 20px/1 var(--font-dm-sans), sans-serif',
+              color: '#0a0a0a',
               letterSpacing: '-0.4px',
-              color: '#26251e',
             }}
           >
-            BrickScore
+            brickscore
           </span>
         </Link>
 
-        {/* Nav links */}
-        <nav style={{ display: 'inline-flex', gap: 2, marginLeft: 8 }}>
-          {['Produkt', 'Preise', 'Saved Deals'].map((label) => (
-            <Link key={label} href="#" className="v-navlink">
+        {/* Nav — center */}
+        <nav
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 36,
+          }}
+        >
+          {NAV_LINKS.map(([label, href]) => (
+            <Link
+              key={label}
+              href={href}
+              style={{
+                font: '400 15px/1 var(--font-dm-sans), sans-serif',
+                color: '#4a4a4a',
+                textDecoration: 'none',
+                letterSpacing: '-0.1px',
+                transition: 'color 130ms ease',
+                whiteSpace: 'nowrap',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = '#0a0a0a' }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = '#4a4a4a' }}
+            >
               {label}
             </Link>
           ))}
         </nav>
 
-        <div style={{ flex: 1 }} />
-
-        {/* Account */}
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-          <Link href="/login" className="v-navlink">
+        {/* Actions — right */}
+        <div
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 20,
+            justifySelf: 'end',
+          }}
+        >
+          <Link
+            href="/login"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              padding: '9px 18px',
+              background: 'linear-gradient(to bottom, #ffffff, #f5f5f5)',
+              color: '#0a0a0a',
+              borderRadius: 8,
+              font: '500 14px/1 var(--font-dm-sans), sans-serif',
+              textDecoration: 'none',
+              border: '1px solid #d8d8d8',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.07), 0 3px 10px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.95)',
+              transition: 'box-shadow 150ms ease, border-color 150ms ease',
+              whiteSpace: 'nowrap',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1), 0 5px 16px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)'
+              e.currentTarget.style.borderColor = '#bbbbbb'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.07), 0 3px 10px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.95)'
+              e.currentTarget.style.borderColor = '#d8d8d8'
+            }}
+          >
             Anmelden
           </Link>
+
           <Link
             href="/signup"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: 6,
-              padding: '9px 16px',
-              borderRadius: 9999,
-              background: '#26251e',
-              color: '#f2f1ed',
-              font: '500 13.5px/1 var(--font-space-grotesk), sans-serif',
+              padding: '10px 22px',
+              background: 'linear-gradient(to bottom, #3d3d3d, #141414)',
+              color: '#ffffff',
+              borderRadius: 8,
+              font: '500 14px/1 var(--font-dm-sans), sans-serif',
               textDecoration: 'none',
-              transition: 'transform 180ms cubic-bezier(0.2,0.9,0.3,1), background 180ms ease, box-shadow 220ms ease',
+              letterSpacing: '-0.1px',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.08)',
+              border: '1px solid rgba(0,0,0,0.5)',
+              transition: 'opacity 150ms ease, box-shadow 150ms ease',
+              whiteSpace: 'nowrap',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-1px)'
-              e.currentTarget.style.background = '#0f0e0a'
-              e.currentTarget.style.boxShadow = '0 10px 24px rgba(38,37,30,0.25)'
+              e.currentTarget.style.opacity = '0.88'
+              e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.4), 0 6px 16px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.08)'
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.transform = ''
-              e.currentTarget.style.background = '#26251e'
-              e.currentTarget.style.boxShadow = ''
+              e.currentTarget.style.opacity = '1'
+              e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.08)'
             }}
           >
-            Registrieren
+            Kostenlos starten
           </Link>
         </div>
       </div>

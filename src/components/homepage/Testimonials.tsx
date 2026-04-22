@@ -1,111 +1,134 @@
-import SectionEyebrow from './SectionEyebrow'
-
-interface Testimonial {
-  q: string
-  a: string
-  r: string
-}
-
-const TESTIMONIALS: Testimonial[] = [
+const TESTIMONIALS = [
   {
-    q: 'Früher hab ich Immobilien nach Bauchgefühl gekauft. Heute analysiere ich ein Inserat in 30 Sekunden und weiß sofort, ob sich die Rendite rechnet.',
-    a: 'Julia Krämer',
-    r: 'Buy-and-Hold-Investorin, 14 Einheiten',
+    quote: 'Mit BrickScore sehe ich in 30 Sekunden, ob ein Deal sich rechnet. Excel brauch ich dafür nicht mehr.',
+    name: 'Markus R.',
+    role: 'Privatinvestor',
+    location: 'München',
+    portfolio: '4 Einheiten',
+    initials: 'MR',
   },
   {
-    q: 'Endlich ein Cashflow Rechner, der die deutschen Kaufnebenkosten versteht. Die Berechnung nach Bundesland läuft automatisch. Das spart mir in jedem Deal eine Viertelstunde.',
-    a: 'Thomas Weber',
-    r: 'Family Office, Süddeutschland',
+    quote: 'Endlich ein Tool, das Kaufnebenkosten nach Bundesland automatisch berechnet. Das hat mir früher immer gefehlt.',
+    name: 'Sandra K.',
+    role: 'Immobilienkäuferin',
+    location: 'Hamburg',
+    portfolio: '2 Einheiten',
+    initials: 'SK',
   },
   {
-    q: 'BrickScore ist bei uns Standard im Bankgespräch. Mietrendite, Cashflow, Cash-on-Cash Return — alle Zahlen sind auf Knopfdruck vorhanden.',
-    a: 'Carla Reinhardt',
-    r: 'Asset Managerin, Berlin',
+    quote: 'Der Deal Score hilft mir, Objekte objektiv zu vergleichen. Kein Bauchgefühl mehr, nur Zahlen.',
+    name: 'Thomas W.',
+    role: 'Buy & Hold Investor',
+    location: 'Berlin',
+    portfolio: '8 Einheiten',
+    initials: 'TW',
+  },
+  {
+    quote: 'Ich nutze BrickScore für jede Besichtigung als Vorbereitung. Die Cashflow-Analyse ist unschlagbar einfach.',
+    name: 'Julia M.',
+    role: 'Immobilienanalystin',
+    location: 'Frankfurt',
+    portfolio: '6 Einheiten',
+    initials: 'JM',
   },
 ]
 
 export default function Testimonials() {
   return (
-    <SectionEyebrow
-      num="04"
-      title="Was Investoren über BrickScore sagen"
-      subtitle="Von privaten Käufern bis zu Family Offices."
-    >
+    <section style={{ padding: '96px 5%', background: '#fff', borderTop: '1px solid #e5e5e5' }}>
+      <h2
+        style={{
+          margin: '0 0 10px',
+          font: '700 clamp(28px, 3vw, 40px)/1.1 var(--font-dm-sans), sans-serif',
+          letterSpacing: '-0.025em',
+          color: '#0a0a0a',
+        }}
+      >
+        Vertrauen von Investoren
+      </h2>
+      <p
+        style={{
+          margin: '0 0 56px',
+          font: '400 15px/1 var(--font-dm-sans), sans-serif',
+          color: '#8a8a8a',
+        }}
+      >
+        Von privaten Käufern bis zu erfahrenen Portfolio-Investoren.
+      </p>
+
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: 16,
-          marginTop: 24,
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: 20,
         }}
       >
-        {TESTIMONIALS.map((t, i) => (
-          <figure
-            key={i}
+        {TESTIMONIALS.map((t) => (
+          <div
+            key={t.name}
             style={{
-              margin: 0,
-              padding: 28,
+              border: '1px solid #e5e5e5',
               borderRadius: 12,
-              background: '#f7f7f4',
-              boxShadow: '0 0 0 1px rgba(38,37,30,0.08)',
+              padding: '24px 22px',
               display: 'flex',
               flexDirection: 'column',
               gap: 20,
             }}
           >
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#f54e00"
-              strokeWidth="1.5"
-              aria-hidden="true"
-            >
-              <path d="M6 17h3l2-4V7H5v6h3zm8 0h3l2-4V7h-6v6h3z" />
-            </svg>
-            <blockquote
+            {/* Avatar + name */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: '50%',
+                  background: '#f0f0f0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  font: '600 14px/1 var(--font-dm-sans)',
+                  color: '#4a4a4a',
+                  flexShrink: 0,
+                }}
+              >
+                {t.initials}
+              </div>
+              <div>
+                <div style={{ font: '600 14px/1 var(--font-dm-sans)', color: '#0a0a0a', marginBottom: 4 }}>
+                  {t.name}
+                </div>
+                <div style={{ font: '400 12px/1 var(--font-dm-sans)', color: '#8a8a8a' }}>
+                  {t.role} · {t.location}
+                </div>
+              </div>
+            </div>
+
+            {/* Quote */}
+            <p
               style={{
                 margin: 0,
-                fontFamily: 'var(--font-fraunces), sans-serif',
-                fontWeight: 400,
-                fontSize: 19,
-                lineHeight: 1.4,
-                color: '#26251e',
-                letterSpacing: '-0.015em',
+                font: '400 13.5px/1.55 var(--font-dm-sans), sans-serif',
+                color: '#4a4a4a',
+                flex: 1,
               }}
             >
-              „{t.q}"
-            </blockquote>
-            <figcaption
+              &ldquo;{t.quote}&rdquo;
+            </p>
+
+            {/* Portfolio badge */}
+            <div
               style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 2,
-                paddingTop: 16,
-                borderTop: '1px solid rgba(38,37,30,0.08)',
+                font: '500 11.5px/1 var(--font-dm-sans)',
+                color: '#8a8a8a',
+                borderTop: '1px solid #f0f0f0',
+                paddingTop: 14,
               }}
             >
-              <span
-                style={{
-                  font: '500 14px/1.2 var(--font-space-grotesk), sans-serif',
-                  color: '#26251e',
-                }}
-              >
-                {t.a}
-              </span>
-              <span
-                style={{
-                  font: '500 12px/1.2 var(--font-space-grotesk), sans-serif',
-                  color: 'rgba(38,37,30,0.55)',
-                }}
-              >
-                {t.r}
-              </span>
-            </figcaption>
-          </figure>
+              Portfolio: {t.portfolio}
+            </div>
+          </div>
         ))}
       </div>
-    </SectionEyebrow>
+    </section>
   )
 }

@@ -2,10 +2,11 @@ import type { Metadata } from 'next'
 import Header from '@/components/layout/Header'
 import Hero from '@/components/homepage/Hero'
 import PortalWall from '@/components/homepage/PortalWall'
-import FeatureUrlImport from '@/components/homepage/FeatureUrlImport'
-import FeatureKpis from '@/components/homepage/FeatureKpis'
-import FeaturePortfolio from '@/components/homepage/FeaturePortfolio'
+import StatsBar from '@/components/homepage/StatsBar'
+import FeatureSection from '@/components/homepage/FeatureSection'
 import Testimonials from '@/components/homepage/Testimonials'
+import TrustStatement from '@/components/homepage/TrustStatement'
+import ComparisonTable from '@/components/homepage/ComparisonTable'
 import CtaBand from '@/components/homepage/CtaBand'
 import FooterSection from '@/components/homepage/FooterSection'
 import Calculator from '@/components/calculator/Calculator'
@@ -22,31 +23,66 @@ export default function HomePage() {
       <Header />
 
       <main>
+        {/* 1 · Hero */}
         <Hero />
+
+        {/* 2 · Portal trust strip */}
         <PortalWall />
 
-        {/* Calculator stage */}
-        <div
+        {/* 3 · Stats */}
+        <StatsBar />
+
+        {/* 4 · Feature tabs */}
+        <FeatureSection />
+
+        {/* 5 · Testimonials */}
+        <Testimonials />
+
+        {/* 6 · Trust statement */}
+        <TrustStatement />
+
+        {/* 7 · Calculator — dark section */}
+        <section
           id="calculator"
           style={{
-            position: 'relative',
-            padding: '8px 5% 24px',
+            background: '#0f0f0f',
+            padding: '80px 5% 80px',
           }}
         >
+          <div style={{ marginBottom: 28, textAlign: 'center' }}>
+            <h2
+              style={{
+                margin: '0 0 12px',
+                font: '700 clamp(28px, 3.2vw, 44px)/1.08 var(--font-dm-sans), sans-serif',
+                letterSpacing: '-0.025em',
+                color: '#f0f0f0',
+              }}
+            >
+              Berechne alles auf einen Blick
+            </h2>
+            <p
+              style={{
+                margin: 0,
+                font: '400 15px/1 var(--font-dm-sans), sans-serif',
+                color: 'rgba(240,240,240,0.45)',
+              }}
+            >
+              Link einfügen oder manuell eingeben — Analyse startet sofort.
+            </p>
+          </div>
+
           <div
             style={{
-              position: 'relative',
-              padding: 10,
-              borderRadius: 20,
-              background: 'linear-gradient(180deg, rgba(38,37,30,0.04) 0%, rgba(38,37,30,0) 100%)',
-              boxShadow: '0 40px 90px rgba(38,37,30,0.12), 0 16px 40px rgba(38,37,30,0.08)',
+              borderRadius: 16,
+              overflow: 'hidden',
+              boxShadow: '0 40px 100px rgba(0,0,0,0.5), 0 8px 32px rgba(0,0,0,0.3)',
+              border: '1px solid rgba(255,255,255,0.06)',
             }}
           >
             <div
               style={{
                 borderRadius: 14,
-                background: '#f2f1ed',
-                boxShadow: '0 0 0 1px rgba(38,37,30,0.08)',
+                background: '#f7f7f7',
                 overflow: 'hidden',
               }}
             >
@@ -55,12 +91,12 @@ export default function HomePage() {
               </div>
             </div>
           </div>
-        </div>
+        </section>
 
-        <FeatureUrlImport />
-        <FeatureKpis />
-        <FeaturePortfolio />
-        <Testimonials />
+        {/* 8 · Comparison table */}
+        <ComparisonTable />
+
+        {/* 9 · CTA band */}
         <CtaBand />
       </main>
 
