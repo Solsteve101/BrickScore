@@ -4,22 +4,26 @@ const TESTIMONIALS = [
   {
     quote: 'Hab vorher alles in Excel gemacht. Jetzt paste ich den Link rein und hab sofort alle Zahlen. Spart mir locker eine Stunde pro Objekt.',
     name: 'Markus R.',
-    avatar: 'https://randomuser.me/api/portraits/men/75.jpg',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=face',
+    fallback: 'https://randomuser.me/api/portraits/men/75.jpg',
   },
   {
     quote: 'Kaufnebenkosten werden automatisch nach Bundesland berechnet. Das zeigt, dass das Tool für den deutschen Markt gebaut ist.',
     name: 'Sandra K.',
-    avatar: 'https://randomuser.me/api/portraits/women/68.jpg',
+    avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200&h=200&fit=crop&crop=face',
+    fallback: 'https://randomuser.me/api/portraits/women/68.jpg',
   },
   {
     quote: 'Der Deal-Score gibt mir eine schnelle Einschätzung, bevor ich mich tiefer in ein Objekt reinarbeite. Sehr praktisch bei vielen Inseraten.',
     name: 'Thomas W.',
-    avatar: 'https://randomuser.me/api/portraits/men/52.jpg',
+    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop&crop=face',
+    fallback: 'https://randomuser.me/api/portraits/men/52.jpg',
   },
   {
     quote: 'Ich schick meinem Bankberater jetzt einfach die Cashflow-Analyse aus BrickScore mit. Spart beiden Seiten Zeit.',
     name: 'Julia M.',
-    avatar: 'https://randomuser.me/api/portraits/women/90.jpg',
+    avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=200&h=200&fit=crop&crop=face',
+    fallback: 'https://randomuser.me/api/portraits/women/90.jpg',
   },
 ]
 
@@ -60,7 +64,7 @@ export default function Testimonials() {
           alignItems: 'stretch',
         }}
       >
-        {TESTIMONIALS.map((t, i) => (
+        {TESTIMONIALS.map((t) => (
           <div
             key={t.name}
             style={{
@@ -94,6 +98,7 @@ export default function Testimonials() {
             <img
               src={t.avatar}
               alt={t.name}
+              onError={(e) => { e.currentTarget.src = t.fallback }}
               style={{
                 width: 64,
                 height: 64,

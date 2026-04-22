@@ -691,8 +691,8 @@ function CashflowChart({ rows, termYear }: { rows: ProjectionRow[]; termYear: nu
   const areaPath = linePath + ` L${linePts[linePts.length - 1].x.toFixed(1)},${yOf(0).toFixed(1)} L${linePts[0].x.toFixed(1)},${yOf(0).toFixed(1)} Z`
 
   const avgCf = rows.reduce((a, r) => a + r.yearCf, 0) / Math.max(1, rows.length)
-  const lineColor = avgCf >= 0 ? '#1f8a65' : '#cf2d56'
-  const areaColor = avgCf >= 0 ? 'rgba(31,138,101,0.14)' : 'rgba(207,45,86,0.14)'
+  const lineColor = avgCf >= 0 ? '#1C1C1C' : '#DC2626'
+  const areaColor = avgCf >= 0 ? '#E5E7EB' : '#FEE2E2'
 
   const tickCount = 4
   const ticks: number[] = []
@@ -723,15 +723,8 @@ function CashflowChart({ rows, termYear }: { rows: ProjectionRow[]; termYear: nu
           </g>
         )}
 
-        <path d={areaPath} fill={areaColor} />
-        <path d={linePath} fill="none" stroke={lineColor} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
-
-        {linePts.slice(1).map((p, i) => {
-          const pos = data[i + 1].yearCf >= 0
-          return (
-            <circle key={i} cx={p.x} cy={p.y} r={hover === i ? 4.5 : 3} fill={pos ? '#1f8a65' : '#cf2d56'} stroke="#f7f7f4" strokeWidth="1.5" />
-          )
-        })}
+        <path d={areaPath} fill={areaColor} opacity="0.7" />
+        <path d={linePath} fill="none" stroke={lineColor} strokeWidth="1.75" strokeLinejoin="round" strokeLinecap="round" />
 
         {rows.map((row, i) => {
           const step = plotW / years
@@ -763,12 +756,12 @@ function CashflowChart({ rows, termYear }: { rows: ProjectionRow[]; termYear: nu
           return (
             <g style={{ pointerEvents: 'none' }}>
               <line x1={cx} x2={cx} y1={padT} y2={H - padB} stroke="rgba(38,37,30,0.25)" strokeDasharray="2 2" />
-              <circle cx={cx} cy={cy} r="5" fill={pos ? '#1f8a65' : '#cf2d56'} stroke="#f7f7f4" strokeWidth="2" />
+              <circle cx={cx} cy={cy} r="5" fill={pos ? '#1C1C1C' : '#DC2626'} stroke="#f7f7f4" strokeWidth="2" />
               <rect x={bx} y={by} width={boxW} height={boxH} rx={6} fill="#26251e" />
               <text x={bx + 10} y={by + 17} style={{ font: '500 10px var(--font-dm-sans)', fill: 'rgba(242,241,237,0.6)', letterSpacing: 0.5, textTransform: 'uppercase' }}>
                 Jahr {row.year}{afterTerm ? ' · Projektion' : ''}
               </text>
-              <text x={bx + 10} y={by + 34} style={{ font: '500 13px var(--font-jetbrains-mono), monospace', fill: pos ? '#9fd9b9' : '#f5a5b7', fontVariantNumeric: 'tabular-nums' }}>
+              <text x={bx + 10} y={by + 34} style={{ font: '500 13px var(--font-jetbrains-mono), monospace', fill: pos ? '#d0d0d0' : '#f5a5b7', fontVariantNumeric: 'tabular-nums' }}>
                 {fmtEUR(row.yearCf, { sign: true })}
               </text>
             </g>
@@ -811,10 +804,10 @@ function AmortChart({ rows, loan, equity, termYear }: { rows: ProjectionRow[]; l
           </g>
         ))}
 
-        <path d={buildArea(balancePts, yOf(0))} fill="#D1D5DB" opacity="0.5" />
-        <path d={buildPath(balancePts)} stroke="#9CA3AF" strokeWidth="1.75" fill="none" />
-        <path d={buildArea(tilgungPts, yOf(0))} fill="#2E7D32" opacity="0.3" />
-        <path d={buildPath(tilgungPts)} stroke="#2E7D32" strokeWidth="1.75" fill="none" />
+        <path d={buildArea(balancePts, yOf(0))} fill="#E5E7EB" opacity="0.9" />
+        <path d={buildPath(balancePts)} stroke="#9CA3AF" strokeWidth="1.5" fill="none" />
+        <path d={buildArea(tilgungPts, yOf(0))} fill="#1C1C1C" opacity="0.18" />
+        <path d={buildPath(tilgungPts)} stroke="#1C1C1C" strokeWidth="1.5" fill="none" />
 
         {termYear != null && termYear < years && (() => {
           const tx = xOf(termYear)
@@ -862,20 +855,18 @@ function AmortChart({ rows, loan, equity, termYear }: { rows: ProjectionRow[]; l
           return (
             <g style={{ pointerEvents: 'none' }}>
               <line x1={cx} x2={cx} y1={padT} y2={H - padB} stroke="rgba(38,37,30,0.25)" strokeDasharray="2 2" />
-              <circle cx={cx} cy={yOf(d.balance)} r="4" fill="#9CA3AF" stroke="#ffffff" strokeWidth="1.5" />
-              <circle cx={cx} cy={yOf(d.tilgungSum)} r="4" fill="#2E7D32" stroke="#ffffff" strokeWidth="1.5" />
               <rect x={bx} y={by} width={boxW} height={boxH} rx={6} fill="#26251e" />
               <text x={bx + 10} y={by + 16} style={{ font: '500 10px var(--font-dm-sans)', fill: 'rgba(242,241,237,0.55)', letterSpacing: 0.5, textTransform: 'uppercase' }}>
                 Jahr {d.year}
               </text>
               <g>
-                <rect x={bx + 10} y={by + 23} width="6" height="6" rx="1" fill="#D1D5DB" />
+                <rect x={bx + 10} y={by + 23} width="6" height="6" rx="1" fill="#E5E7EB" />
                 <text x={bx + 22} y={by + 29} style={{ font: '500 11px var(--font-jetbrains-mono), monospace', fill: '#f2f1ed' }}>
                   Restschuld {fmtEUR(d.balance)}
                 </text>
               </g>
               <g>
-                <rect x={bx + 10} y={by + 37} width="6" height="6" rx="1" fill="#2E7D32" />
+                <rect x={bx + 10} y={by + 37} width="6" height="6" rx="1" fill="#1C1C1C" />
                 <text x={bx + 22} y={by + 43} style={{ font: '500 11px var(--font-jetbrains-mono), monospace', fill: '#f2f1ed' }}>
                   Getilgt {fmtEUR(d.tilgungSum)}
                 </text>
@@ -1035,7 +1026,8 @@ export default function Calculator() {
   const projYrs = termYr + 5
   const rows = project10yr(r, projYrs)
   const score = dealScore(r)
-  const cfBadge = r.monthlyCashflow >= 0 ? '#1f8a65' : '#cf2d56'
+  const cfBadge = r.monthlyCashflow >= 0 ? '#16A34A' : '#DC2626'
+  const cfBarColor = r.monthlyCashflow >= 0 ? '#1C1C1C' : '#DC2626'
   const isElite = score >= 95
   const extTone: ExtTone = isElite ? 'elite' : state.tone
   const extLabel = isElite ? 'Exzellenter Deal' : state.label
@@ -1246,15 +1238,15 @@ export default function Calculator() {
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '150px 1fr 120px', rowGap: 12, columnGap: 14, alignItems: 'center' }}>
-              <WaterRow color="#1f8a65" label="Effektive Miete" value={fmtEUR(r.effectiveRentMon)} width={1} />
-              <WaterRow color="#e0a070" label="Laufende Kosten" value={fmtEUR(-r.opMon)} width={r.effectiveRentMon > 0 ? r.opMon / r.effectiveRentMon : 0} valueColor="#26251e" />
-              <WaterRow color="#4A4A4A" label="Kapitaldienst" value={fmtEUR(-r.monthlyDebt)} width={r.effectiveRentMon > 0 ? r.monthlyDebt / r.effectiveRentMon : 0} valueColor="#26251e" />
+              <WaterRow color="#1C1C1C" label="Effektive Miete" value={fmtEUR(r.effectiveRentMon)} width={1} />
+              <WaterRow color="#1C1C1C" label="Laufende Kosten" value={fmtEUR(-r.opMon)} width={r.effectiveRentMon > 0 ? r.opMon / r.effectiveRentMon : 0} valueColor="#26251e" />
+              <WaterRow color="#1C1C1C" label="Kapitaldienst" value={fmtEUR(-r.monthlyDebt)} width={r.effectiveRentMon > 0 ? r.monthlyDebt / r.effectiveRentMon : 0} valueColor="#26251e" />
               <span style={{ font: '500 10.5px/1.27 var(--font-dm-sans), sans-serif', letterSpacing: 0.6, textTransform: 'uppercase', color: '#26251e', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ width: 8, height: 8, borderRadius: 2, background: cfBadge }} />
+                <span style={{ width: 8, height: 8, borderRadius: 2, background: cfBarColor }} />
                 Cashflow
               </span>
               <span style={{ height: 10, borderRadius: 5, background: 'rgba(38,37,30,0.06)', overflow: 'hidden', display: 'block' }}>
-                <span style={{ display: 'block', height: '100%', width: `${Math.max(1.5, Math.min(100, r.effectiveRentMon > 0 ? Math.abs(r.monthlyCashflow) / r.effectiveRentMon * 100 : 0))}%`, background: cfBadge, borderRadius: 5, transition: 'width 280ms cubic-bezier(0.16, 1, 0.3, 1)' }} />
+                <span style={{ display: 'block', height: '100%', width: `${Math.max(1.5, Math.min(100, r.effectiveRentMon > 0 ? Math.abs(r.monthlyCashflow) / r.effectiveRentMon * 100 : 0))}%`, background: cfBarColor, borderRadius: 5, transition: 'width 280ms cubic-bezier(0.16, 1, 0.3, 1)' }} />
               </span>
               <span style={{ fontFamily: 'var(--font-jetbrains-mono), monospace', fontWeight: 600, fontSize: 15, fontVariantNumeric: 'tabular-nums', textAlign: 'right', color: cfBadge }}>
                 {fmtEUR(r.monthlyCashflow, { sign: true })}
@@ -1295,8 +1287,8 @@ export default function Calculator() {
             <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap' }}>
               {chart === 'cashflow' ? (
                 <>
-                  <LegendItem color="#1f8a65" label="Positiver Cashflow" />
-                  <LegendItem color="#cf2d56" label="Negativer Cashflow" />
+                  <LegendItem color="#1C1C1C" label="Positiver Cashflow" />
+                  <LegendItem color="#DC2626" label="Negativer Cashflow" />
                   <span style={{ marginLeft: 'auto', font: '500 10.5px/1 var(--font-dm-sans), sans-serif', letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(38,37,30,0.45)' }}>
                     Kumuliert {rows.length}J ·{' '}
                     <span style={{ fontFamily: 'var(--font-jetbrains-mono), monospace', color: (rows[rows.length - 1]?.cumCf ?? 0) >= 0 ? '#1f8a65' : '#cf2d56', textTransform: 'none', letterSpacing: 0 }}>
@@ -1307,7 +1299,7 @@ export default function Calculator() {
               ) : (
                 <>
                   <LegendItem color="#9CA3AF" label="Restschuld" />
-                  <LegendItem color="#2E7D32" label="Getilgt (kumuliert)" />
+                  <LegendItem color="#1C1C1C" label="Getilgt (kumuliert)" />
                   <span style={{ marginLeft: 'auto', font: '500 10.5px/1 var(--font-dm-sans), sans-serif', letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(38,37,30,0.45)' }}>
                     Restschuld nach {termYr}J ·{' '}
                     <span style={{ fontFamily: 'var(--font-jetbrains-mono), monospace', color: '#26251e', textTransform: 'none', letterSpacing: 0 }}>
