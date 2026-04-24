@@ -20,6 +20,7 @@ import {
   nkTotalPct,
 } from '@/lib/calculator-engine'
 import { CITIES, normCity } from '@/lib/cities-data'
+import { useListingAnalysis, type ListingData } from '@/hooks/useListingAnalysis'
 
 // ═══════════════════════════════════════════════════════════
 // CHART HELPERS
@@ -585,24 +586,73 @@ function detectSource(url: string): { key: string; label: string; color: string;
   return null
 }
 
-function ListingImport({ url, onUrlChange }: { url: string; onUrlChange: (url: string) => void }) {
-  const [status, setStatus] = useState<'idle' | 'importing' | 'done'>('idle')
-  const source = useMemo(() => detectSource(url), [url])
-  const isValidUrl = url && url.trim().length > 6 && /^https?:\/\//i.test(url.trim())
-  const lastTriggered = useRef('')
+function ListingImport({ url, onUrlChange, onFill }: {
+  url: string
+  onUrlChange: (url: string) => void
+  onFill: (data: ListingData) => void
+}) {
+  const { status, data, error, analyzeListing, analyzeText, reset } = useListingAnalysis()
+  const [fallbackText, setFallbackText] = useState('')
+  const [loadingText, setLoadingText] = useState('Analysiere Inserat…')
+  const loadingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    if (!isValidUrl) { setStatus('idle'); lastTriggered.current = ''; return }
-    if (lastTriggered.current === url) return
-    lastTriggered.current = url
-    setStatus('importing')
-    const t1 = setTimeout(() => setStatus('done'), 1200)
-    const t2 = setTimeout(() => setStatus('idle'), 4200)
-    return () => { clearTimeout(t1); clearTimeout(t2) }
-  }, [url, isValidUrl])
+    if (status === 'loading') {
+      setLoadingText('Analysiere Inserat…')
+      loadingTimerRef.current = setTimeout(() => setLoadingText('Daten werden extrahiert…'), 3000)
+    } else {
+      if (loadingTimerRef.current !== null) {
+        clearTimeout(loadingTimerRef.current)
+        loadingTimerRef.current = null
+      }
+    }
+    return () => {
+      if (loadingTimerRef.current !== null) clearTimeout(loadingTimerRef.current)
+    }
+  }, [status])
+
+  const source = useMemo(() => detectSource(url), [url])
+  const isValidUrl = url.trim().length > 6 && /^https?:\/\//i.test(url.trim())
+
+  const handleAnalyze = async () => {
+    if (!isValidUrl || status === 'loading') return
+    const result = await analyzeListing(url)
+    console.log('Analysis result:', result)
+    if (result) {
+      console.log('Calling onFill with:', JSON.stringify(result))
+      onFill(result)
+    }
+  }
+
+  const handleFallbackAnalyze = async () => {
+    if (!fallbackText.trim() || status === 'loading') return
+    const result = await analyzeText(fallbackText)
+    console.log('Fallback analysis result:', result)
+    if (result) {
+      console.log('Calling onFill (fallback) with:', JSON.stringify(result))
+      onFill(result)
+    }
+  }
+
+  const handleClear = () => {
+    onUrlChange('')
+    reset()
+    setFallbackText('')
+  }
+
+  const handleUrlChange = (val: string) => {
+    onUrlChange(val)
+    if (status !== 'idle') reset()
+  }
+
+  const ringColor =
+    status === 'success' ? 'rgba(31,138,101,0.45)' :
+    status === 'error'   ? 'rgba(207,45,86,0.35)'  :
+    url                  ? 'rgba(38,37,30,0.18)'   : 'rgba(38,37,30,0.1)'
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
         <span style={{ font: '500 10.5px/1.27 var(--font-dm-sans), sans-serif', letterSpacing: 0.6, textTransform: 'uppercase', color: '#26251e' }}>
           Inserat
@@ -614,10 +664,11 @@ function ListingImport({ url, onUrlChange }: { url: string; onUrlChange: (url: s
         )}
       </div>
 
+      {/* URL input row */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 8,
         padding: '9px 10px 9px 11px', borderRadius: 10, background: '#fff',
-        boxShadow: `0 0 0 1px ${status === 'done' ? 'rgba(31,138,101,0.45)' : url ? 'rgba(38,37,30,0.18)' : 'rgba(38,37,30,0.1)'}`,
+        boxShadow: `0 0 0 1px ${ringColor}`,
         transition: 'box-shadow 240ms ease',
       }}>
         <span style={{ width: 26, height: 26, flexShrink: 0, borderRadius: 6, background: source ? source.bg : 'rgba(38,37,30,0.06)', color: source ? source.color : 'rgba(38,37,30,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 200ms ease, color 200ms ease' }}>
@@ -625,32 +676,55 @@ function ListingImport({ url, onUrlChange }: { url: string; onUrlChange: (url: s
             <path d="M6.5 9.5a2.5 2.5 0 0 0 3.54 0l2-2a2.5 2.5 0 0 0-3.54-3.54l-.7.7M9.5 6.5a2.5 2.5 0 0 0-3.54 0l-2 2a2.5 2.5 0 0 0 3.54 3.54l.7-.7" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </span>
+
         <input
           value={url}
-          onChange={(e) => onUrlChange(e.target.value)}
+          onChange={(e) => handleUrlChange(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void handleAnalyze() } }}
           placeholder="Inserats-Link einfügen…"
           spellCheck={false}
           style={{ border: 'none', outline: 'none', background: 'transparent', padding: 0, margin: 0, flex: 1, minWidth: 0, font: '400 13px/1.35 var(--font-dm-sans), sans-serif', color: '#26251e', textOverflow: 'ellipsis' }}
         />
-        {status === 'importing' && (
-          <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'rgba(38,37,30,0.55)', font: '500 11px/1 var(--font-dm-sans), sans-serif' }}>
-            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ animation: 'vestora-spin 0.9s linear infinite' }}>
+
+        {/* Right-side indicators */}
+        {status === 'loading' && (
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, color: 'rgba(38,37,30,0.55)' }}>
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ animation: 'vestora-spin 0.9s linear infinite', flexShrink: 0 }}>
               <circle cx="8" cy="8" r="6" stroke="currentColor" strokeOpacity="0.25" strokeWidth="2" />
               <path d="M14 8a6 6 0 0 0-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
             </svg>
-            <span>Lese…</span>
+            <span style={{ font: '400 11px/1 var(--font-dm-sans), sans-serif', whiteSpace: 'nowrap' }}>{loadingText}</span>
           </span>
         )}
-        {status === 'done' && (
-          <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#1f8a65', font: '500 11px/1 var(--font-dm-sans), sans-serif' }}>
+        {status === 'success' && (
+          <span style={{ display: 'flex', alignItems: 'center', flexShrink: 0, color: '#1f8a65' }}>
             <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
               <path d="M3 8.5l3.2 3.2L13 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            <span>Übernommen</span>
           </span>
         )}
-        {url && status === 'idle' && (
-          <button onClick={() => onUrlChange('')} title="Link entfernen" style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 2, color: 'rgba(38,37,30,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {status === 'idle' && isValidUrl && (
+          <button
+            onClick={() => { void handleAnalyze() }}
+            style={{ flexShrink: 0, border: 'none', background: '#26251e', color: '#f7f7f4', cursor: 'pointer', borderRadius: 6, padding: '5px 9px', font: '500 11px/1 var(--font-dm-sans), sans-serif', whiteSpace: 'nowrap' }}
+          >
+            Analysieren
+          </button>
+        )}
+        {status === 'error' && isValidUrl && (
+          <button
+            onClick={() => { void handleAnalyze() }}
+            style={{ flexShrink: 0, border: 'none', background: 'rgba(207,45,86,0.1)', color: '#cf2d56', cursor: 'pointer', borderRadius: 6, padding: '5px 9px', font: '500 11px/1 var(--font-dm-sans), sans-serif', whiteSpace: 'nowrap' }}
+          >
+            Erneut
+          </button>
+        )}
+        {url && status !== 'loading' && (
+          <button
+            onClick={handleClear}
+            title="Link entfernen"
+            style={{ flexShrink: 0, border: 'none', background: 'transparent', cursor: 'pointer', padding: 2, color: 'rgba(38,37,30,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
               <path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
@@ -658,9 +732,65 @@ function ListingImport({ url, onUrlChange }: { url: string; onUrlChange: (url: s
         )}
       </div>
 
-      <p style={{ margin: 0, font: '400 11px/1.4 var(--font-dm-sans), sans-serif', color: 'rgba(38,37,30,0.5)' }}>
-        Unterstützt Ihren Immobilienanbieter des Vertrauens.
-      </p>
+      {/* Status feedback below input */}
+      {status === 'loading' && (
+        <p style={{ margin: 0, font: '400 11px/1.4 var(--font-dm-sans), sans-serif', color: 'rgba(38,37,30,0.55)' }}>
+          {loadingText}
+        </p>
+      )}
+
+      {status === 'success' && data && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '7px 10px', borderRadius: 7, background: 'rgba(31,138,101,0.08)', border: '1px solid rgba(31,138,101,0.18)' }}>
+          <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ flexShrink: 0, color: '#1f8a65' }}>
+            <path d="M3 8.5l3.2 3.2L13 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <span style={{ font: '400 11.5px/1.35 var(--font-dm-sans), sans-serif', color: '#1a6a45' }}>
+            {[
+              data.objektart ? (data.ort ? `${data.objektart} in ${data.ort}` : data.objektart) : (data.ort ? `Objekt in ${data.ort}` : 'Objekt'),
+              data.kaufpreis != null ? fmtEUR(data.kaufpreis) : null,
+              data.wohnflaeche != null ? `${data.wohnflaeche} m²` : null,
+              data.zimmer != null ? `${data.zimmer} Zimmer` : null,
+            ].filter(Boolean).join(' — ')}
+          </span>
+        </div>
+      )}
+
+      {status === 'error' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <p style={{ margin: 0, font: '400 11.5px/1.4 var(--font-dm-sans), sans-serif', color: '#cf2d56' }}>
+            {error ?? 'Das Inserat konnte nicht automatisch gelesen werden.'}
+          </p>
+          <textarea
+            value={fallbackText}
+            onChange={(e) => setFallbackText(e.target.value)}
+            placeholder="Kopiere den Inseratstext von der Webseite hier rein (Strg+A → Strg+C auf der Inseratsseite)"
+            rows={5}
+            style={{
+              width: '100%', boxSizing: 'border-box', borderRadius: 8,
+              border: '1px solid #e5e5e5', background: '#fff',
+              padding: '9px 10px', font: '400 12px/1.5 var(--font-dm-sans), sans-serif',
+              color: '#26251e', resize: 'vertical', outline: 'none',
+              transition: 'border-color 150ms ease',
+            }}
+            onFocus={(e) => { e.currentTarget.style.borderColor = '#0a0a0a' }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = '#e5e5e5' }}
+          />
+          <button
+            onClick={() => { void handleFallbackAnalyze() }}
+            disabled={!fallbackText.trim()}
+            style={{
+              alignSelf: 'flex-start', border: 'none', background: '#26251e', color: '#f7f7f4',
+              cursor: fallbackText.trim() ? 'pointer' : 'default',
+              borderRadius: 7, padding: '8px 14px',
+              font: '500 12px/1 var(--font-dm-sans), sans-serif',
+              opacity: fallbackText.trim() ? 1 : 0.4,
+              transition: 'opacity 150ms ease',
+            }}
+          >
+            Text analysieren
+          </button>
+        </div>
+      )}
     </div>
   )
 }
@@ -1014,6 +1144,7 @@ export default function Calculator() {
   const [inputs, setInputs] = useState<CalcInputs>(DEFAULT_INPUTS)
   const [chart, setChart] = useState<'amort' | 'cashflow'>('amort')
   const [toast, setToast] = useState<string | null>(null)
+  const [rentEstimated, setRentEstimated] = useState(false)
 
   const upd = useCallback(<K extends keyof CalcInputs>(k: K) => (v: CalcInputs[K]) => {
     setInputs((s) => ({ ...s, [k]: v }))
@@ -1036,6 +1167,35 @@ export default function Calculator() {
     setToast(msg)
     setTimeout(() => setToast(null), 2000)
   }
+
+  const handleFill = useCallback((data: ListingData) => {
+    console.log('handleFill called with:', JSON.stringify(data))
+    const updates: Partial<CalcInputs> = {}
+    if (data.kaufpreis != null && data.kaufpreis > 0) {
+      updates.price = String(Math.round(data.kaufpreis))
+      console.log('Setting price:', updates.price)
+    }
+    if (data.ort) {
+      updates.city = data.ort
+      console.log('Setting city:', updates.city)
+    }
+    if (data.bundeslandCode) {
+      updates.state = data.bundeslandCode
+      updates.nkOverrides = {}
+      console.log('Setting state:', updates.state)
+    }
+    if (data.monthlyRent != null && data.monthlyRent > 0) {
+      updates.rent = String(data.monthlyRent)
+      console.log('Setting rent:', updates.rent)
+    }
+    if (data.hatMakler === false) {
+      updates.includeMakler = false
+      console.log('Setting includeMakler: false')
+    }
+    console.log('Applying all updates:', updates)
+    setInputs((s) => ({ ...s, ...updates }))
+    if (data.monthlyRent != null && data.monthlyRent > 0) setRentEstimated(true)
+  }, [])
 
   const onSave = () => showToast('✓ Deal gespeichert')
 
@@ -1116,7 +1276,7 @@ export default function Calculator() {
         {/* ── SIDEBAR ── */}
         <aside style={{ alignSelf: 'start', position: 'sticky', top: 88, padding: 16, borderRadius: 12, background: '#ffffff', border: '1px solid #e5e5e5', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-          <ListingImport url={inputs.listingUrl} onUrlChange={upd('listingUrl')} />
+          <ListingImport url={inputs.listingUrl} onUrlChange={upd('listingUrl')} onFill={handleFill} />
           <Divider />
 
           <InputGroup label="Standort">
@@ -1176,7 +1336,7 @@ export default function Calculator() {
           <Divider />
 
           <InputGroup label="Einnahmen">
-            <NumberInput label="Monatsmiete" prefix="€" value={inputs.rent} onChange={upd('rent')} info="Kaltmiete aller Einheiten pro Monat." />
+            <NumberInput label="Monatsmiete" prefix="€" value={inputs.rent} onChange={(v) => { upd('rent')(v); if (rentEstimated) setRentEstimated(false) }} hint={rentEstimated ? 'Automatisch geschätzt — bitte prüfen' : undefined} info="Kaltmiete aller Einheiten pro Monat." />
             <NumberInput label="Sonstige Einnahmen" prefix="€" value={inputs.otherInc} onChange={upd('otherInc')} info="Zusätzliche monatliche Einnahmen wie Stellplatz- oder Garagenmieten." />
             <NumberInput label="Leerstand" suffix="%" value={inputs.vacancy} onChange={upd('vacancy')} info="Angenommener Mietausfall in % der Bruttomiete — Puffer für leere Einheiten und Mieterwechsel." />
           </InputGroup>
