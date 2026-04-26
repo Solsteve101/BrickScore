@@ -21,6 +21,10 @@ import {
 } from '@/lib/calculator-engine'
 import { CITIES, normCity } from '@/lib/cities-data'
 import { useListingAnalysis, type ListingData } from '@/hooks/useListingAnalysis'
+import SaveDealModal from './SaveDealModal'
+import ExportDealModal, { type ExportFormat } from './ExportDealModal'
+import { saveDeal as persistDeal, buildKpis, findDealById, type SavedDeal } from '@/lib/deals-store'
+import { runExport } from '@/lib/exporters/run-export'
 
 // ═══════════════════════════════════════════════════════════
 // CHART HELPERS
@@ -184,7 +188,7 @@ function fmtNum(v: string | number | null | undefined): string {
 }
 
 function NumberInput({
-  label, value, onChange, prefix, suffix, hint, placeholder, info,
+  label, value, onChange, prefix, suffix, hint, placeholder, info, raw,
 }: {
   label?: string
   value: string
@@ -194,9 +198,10 @@ function NumberInput({
   hint?: string
   placeholder?: string
   info?: string
+  raw?: boolean
 }) {
   const [focused, setFocused] = useState(false)
-  const displayValue = focused ? String(value ?? '') : fmtNum(value)
+  const displayValue = focused || raw ? String(value ?? '') : fmtNum(value)
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
       {label && (
@@ -438,14 +443,24 @@ function NebenkostenEditor({ state, includeMakler, onToggleMakler, overrides, on
   price: number
 }) {
   const [open, setOpen] = useState(false)
+  const wrapRef = useRef<HTMLDivElement>(null)
   const comps = nkComponents(state, true, overrides)
   const makler = includeMakler ? comps.makler : 0
   const totalPct = comps.grest + comps.notar + comps.grundbuch + makler
   const totalEur = price * totalPct / 100
   const hasOverride = overrides && Object.keys(overrides).length > 0
 
+  useEffect(() => {
+    if (!open) return
+    const onDoc = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onDoc)
+    return () => document.removeEventListener('mousedown', onDoc)
+  }, [open])
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 0, borderRadius: 8, background: '#ffffff', border: '1px solid #e5e5e5', overflow: 'hidden' }}>
+    <div ref={wrapRef} style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 0, borderRadius: 8, background: '#ffffff', border: '1px solid #e5e5e5' }}>
       <button
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
@@ -475,16 +490,31 @@ function NebenkostenEditor({ state, includeMakler, onToggleMakler, overrides, on
       </button>
 
       {open && (
-        <div style={{ padding: '4px 12px 8px', borderTop: '1px solid rgba(38,37,30,0.08)' }}>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: 8, paddingBottom: 2 }}>
-            {hasOverride && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 40,
+          padding: '10px 14px 12px',
+          background: '#ffffff', borderRadius: 8,
+          border: '1px solid #e5e5e5',
+          boxShadow: '0 12px 32px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.04)',
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 4 }}>
+            {hasOverride ? (
               <button
                 onClick={(e) => { e.stopPropagation(); onReset() }}
                 style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, color: 'rgba(38,37,30,0.5)', font: '500 10.5px/1 var(--font-dm-sans), sans-serif', letterSpacing: 0.4, textTransform: 'uppercase' }}
               >
                 Zurücksetzen
               </button>
-            )}
+            ) : <span />}
+            <button
+              onClick={(e) => { e.stopPropagation(); setOpen(false) }}
+              aria-label="Schließen"
+              style={{ width: 22, height: 22, padding: 0, border: 'none', background: 'transparent', color: 'rgba(38,37,30,0.45)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 4 }}
+            >
+              <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+                <path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </button>
           </div>
 
           {NK_ROWS.map((row, i) => {
@@ -617,21 +647,13 @@ function ListingImport({ url, onUrlChange, onFill }: {
   const handleAnalyze = async () => {
     if (!isValidUrl || status === 'loading') return
     const result = await analyzeListing(url)
-    console.log('Analysis result:', result)
-    if (result) {
-      console.log('Calling onFill with:', JSON.stringify(result))
-      onFill(result)
-    }
+    if (result) onFill(result)
   }
 
   const handleFallbackAnalyze = async () => {
     if (!fallbackText.trim() || status === 'loading') return
     const result = await analyzeText(fallbackText)
-    console.log('Fallback analysis result:', result)
-    if (result) {
-      console.log('Calling onFill (fallback) with:', JSON.stringify(result))
-      onFill(result)
-    }
+    if (result) onFill(result)
   }
 
   const handleClear = () => {
@@ -733,6 +755,12 @@ function ListingImport({ url, onUrlChange, onFill }: {
       </div>
 
       {/* Status feedback below input */}
+      {status === 'idle' && (
+        <p style={{ margin: 0, font: '400 11px/1.4 var(--font-dm-sans), sans-serif', color: 'rgba(38,37,30,0.45)' }}>
+          ImmoScout24, Immowelt, Kleinanzeigen &amp; mehr. Bei manchen Portalen ist ein manueller Text-Import nötig.
+        </p>
+      )}
+
       {status === 'loading' && (
         <p style={{ margin: 0, font: '400 11px/1.4 var(--font-dm-sans), sans-serif', color: 'rgba(38,37,30,0.55)' }}>
           {loadingText}
@@ -757,13 +785,18 @@ function ListingImport({ url, onUrlChange, onFill }: {
 
       {status === 'error' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <p style={{ margin: 0, font: '400 11.5px/1.4 var(--font-dm-sans), sans-serif', color: '#cf2d56' }}>
-            {error ?? 'Das Inserat konnte nicht automatisch gelesen werden.'}
+          {error && (
+            <p style={{ margin: 0, font: '400 11.5px/1.4 var(--font-dm-sans), sans-serif', color: '#cf2d56' }}>
+              {error}
+            </p>
+          )}
+          <p style={{ margin: 0, font: '400 11.5px/1.4 var(--font-dm-sans), sans-serif', color: 'rgba(38,37,30,0.7)' }}>
+            Einige Portale blockieren das automatische Auslesen. Kopiere stattdessen den Inseratstext:
           </p>
           <textarea
             value={fallbackText}
             onChange={(e) => setFallbackText(e.target.value)}
-            placeholder="Kopiere den Inseratstext von der Webseite hier rein (Strg+A → Strg+C auf der Inseratsseite)"
+            placeholder="Inseratstext hier einfügen…"
             rows={5}
             style={{
               width: '100%', boxSizing: 'border-box', borderRadius: 8,
@@ -775,6 +808,11 @@ function ListingImport({ url, onUrlChange, onFill }: {
             onFocus={(e) => { e.currentTarget.style.borderColor = '#0a0a0a' }}
             onBlur={(e) => { e.currentTarget.style.borderColor = '#e5e5e5' }}
           />
+          <ol style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 2, font: '400 10.5px/1.45 var(--font-dm-sans), sans-serif', color: 'rgba(38,37,30,0.45)' }}>
+            <li>1. Öffne das Inserat im Browser</li>
+            <li>2. Markiere den gesamten Text (Strg+A)</li>
+            <li>3. Kopiere ihn hier rein (Strg+V)</li>
+          </ol>
           <button
             onClick={() => { void handleFallbackAnalyze() }}
             disabled={!fallbackText.trim()}
@@ -1131,6 +1169,7 @@ const DEFAULT_INPUTS: CalcInputs = {
   price: '420000',
   reno: '10000',
   opCosts: '360',
+  hausgeld: '0',
   equity: '140000',
   rate: '3.5',
   amort: '1.5',
@@ -1138,6 +1177,9 @@ const DEFAULT_INPUTS: CalcInputs = {
   rent: '2480',
   vacancy: '3',
   otherInc: '0',
+  wohnflaeche: '0',
+  zimmer: '0',
+  baujahr: '',
 }
 
 export default function Calculator() {
@@ -1148,6 +1190,24 @@ export default function Calculator() {
 
   const upd = useCallback(<K extends keyof CalcInputs>(k: K) => (v: CalcInputs[K]) => {
     setInputs((s) => ({ ...s, [k]: v }))
+  }, [])
+
+  // Hydrate from saved deal when navigated as /?deal=ID
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    const id = params.get('deal')
+    if (!id) return
+    const found = findDealById(id)
+    if (!found) return
+    setInputs(found.inputs)
+    setRentEstimated(false)
+    setCurrentDealId(found.id)
+    setLastSavedTitle(found.titel)
+    // Clean URL so a refresh doesn't keep re-loading
+    const url = new URL(window.location.href)
+    url.searchParams.delete('deal')
+    window.history.replaceState({}, '', url.toString())
   }, [])
 
   const r = calc(inputs)
@@ -1169,79 +1229,210 @@ export default function Calculator() {
   }
 
   const handleFill = useCallback((data: ListingData) => {
-    console.log('handleFill called with:', JSON.stringify(data))
-    const updates: Partial<CalcInputs> = {}
+    const updates: Partial<CalcInputs> = {
+      reno: '0',
+      opCosts: '0',
+      hausgeld: '0',
+      rent: '0',
+      otherInc: '0',
+      equity: '0',
+      vacancy: '0',
+      wohnflaeche: '0',
+      zimmer: '0',
+      baujahr: '',
+    }
     if (data.kaufpreis != null && data.kaufpreis > 0) {
       updates.price = String(Math.round(data.kaufpreis))
-      console.log('Setting price:', updates.price)
     }
     if (data.ort) {
       updates.city = data.ort
-      console.log('Setting city:', updates.city)
     }
     if (data.bundeslandCode) {
       updates.state = data.bundeslandCode
       updates.nkOverrides = {}
-      console.log('Setting state:', updates.state)
     }
     if (data.monthlyRent != null && data.monthlyRent > 0) {
       updates.rent = String(data.monthlyRent)
-      console.log('Setting rent:', updates.rent)
     }
     if (data.hatMakler === false) {
       updates.includeMakler = false
-      console.log('Setting includeMakler: false')
     }
-    console.log('Applying all updates:', updates)
+    if (data.wohnflaeche != null && data.wohnflaeche > 0) {
+      updates.wohnflaeche = String(data.wohnflaeche)
+    }
+    if (data.zimmer != null && data.zimmer > 0) {
+      updates.zimmer = String(data.zimmer)
+    }
+    if (data.baujahr != null && data.baujahr > 0) {
+      updates.baujahr = String(data.baujahr)
+    }
+    if (data.hausgeld != null && data.hausgeld > 0) {
+      updates.hausgeld = String(Math.round(data.hausgeld))
+    }
     setInputs((s) => ({ ...s, ...updates }))
-    if (data.monthlyRent != null && data.monthlyRent > 0) setRentEstimated(true)
+    setRentEstimated(false)
   }, [])
 
-  const onSave = () => showToast('✓ Deal gespeichert')
+  const [saveOpen, setSaveOpen] = useState(false)
+  const [exportOpen, setExportOpen] = useState(false)
+  const [exporting, setExporting] = useState(false)
+  const [lastSavedTitle, setLastSavedTitle] = useState<string>('')
+  const [currentDealId, setCurrentDealId] = useState<string | null>(null)
+  const [unsavedExportPrompt, setUnsavedExportPrompt] = useState<ExportFormat | null>(null)
+  const [pendingExportAfterSave, setPendingExportAfterSave] = useState<ExportFormat | null>(null)
 
-  const onExport = useCallback(() => {
-    const sheet = document.getElementById('vestora-print-sheet')
-    if (sheet) {
-      const dateStr = new Date().toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' })
-      const printRows: [string, string][] = [
-        ['Kaufpreis', fmtEUR(r.price)],
-        ['Nebenkosten', `${fmtEUR(r.nebenkosten)}  ·  ${r.nkPct.toFixed(1)} %`],
-        ['Renovierung', fmtEUR(r.reno)],
-        ['Gesamtkosten', fmtEUR(r.gesamt)],
-        ['—', ''],
-        ['Eigenkapital', fmtEUR(r.equity)],
-        ['Darlehen', fmtEUR(r.loan)],
-        ['Monatsrate', fmtEUR(r.monthlyDebt)],
-        ['LTV', fmtPct(r.ltv)],
-        ['—', ''],
-        ['Monats-Cashflow', fmtEUR(r.monthlyCashflow, { sign: true })],
-        ['Jahres-Cashflow', fmtEUR(r.annualCashflow, { sign: true })],
-        ['Netto-Rendite', fmtPct(r.netYield)],
-        ['Cash-on-Cash', fmtPct(r.coc)],
-      ]
-      sheet.innerHTML = `
-        <div class="p-header">
-          <div class="p-brand">BrickScore</div>
-          <div class="p-date">Deal-Zusammenfassung · ${dateStr}</div>
-        </div>
-        <h1 class="p-title">Deal-Analyse</h1>
-        <div class="p-verdict">Bewertung: <strong>${state.label}</strong></div>
-        <div class="p-rows">
-          ${printRows.map(([k, v]) => k === '—' ? '<div class="p-sep"></div>' : `<div class="p-row"><span>${k}</span><span class="v">${v}</span></div>`).join('')}
-        </div>
-        <div class="p-foot">© BrickScore · Immobilien-Rechner</div>
-      `
+  const onSave = () => setSaveOpen(true)
+  const onExport = () => setExportOpen(true)
+
+  const runCalculatorExport = useCallback(async (format: ExportFormat, dealId: string | null) => {
+    const titleForFile = lastSavedTitle || (inputs.city ? `Immobilie ${inputs.city}` : 'BrickScore_Deal')
+    const res = await runExport({
+      format,
+      titel: titleForFile,
+      link: inputs.listingUrl,
+      bilder: [],
+      inputs,
+      result: r,
+      projection: rows,
+      termYr,
+      score,
+      verdict: extLabel,
+      pngTargetId: 'vestora-export-target',
+      dealId,
+    })
+    return res
+  }, [inputs, r, rows, termYr, score, extLabel, lastSavedTitle])
+
+  const handleSaveDeal = useCallback((data: { titel: string; link: string; notizen: string; bilder: string[] }) => {
+    const deal: SavedDeal = {
+      id: (typeof crypto !== 'undefined' && 'randomUUID' in crypto) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+      titel: data.titel,
+      link: data.link,
+      notizen: data.notizen,
+      bilder: data.bilder,
+      datum: new Date().toISOString(),
+      inputs,
+      kpis: buildKpis(r, score),
     }
-    const prevTitle = document.title
-    document.title = 'BrickScore_Deal'
-    window.print()
-    setTimeout(() => { document.title = prevTitle }, 500)
-  }, [r, state.label])
+    persistDeal(deal)
+    setLastSavedTitle(data.titel)
+    setCurrentDealId(deal.id)
+    setSaveOpen(false)
+    showToast('✓ Deal gespeichert')
+
+    // If a "save & export" flow was queued, kick off the export now
+    if (pendingExportAfterSave) {
+      const fmt = pendingExportAfterSave
+      setPendingExportAfterSave(null)
+      setExporting(true)
+      void runCalculatorExport(fmt, deal.id)
+        .then((res) => showToast(res.truncated ? '✓ Heruntergeladen — Datei zu groß zum Speichern' : '✓ Export erstellt'))
+        .catch((e) => showToast(`Export fehlgeschlagen: ${e instanceof Error ? e.message : String(e)}`))
+        .finally(() => { setExporting(false); setExportOpen(false) })
+    }
+  }, [inputs, r, score, pendingExportAfterSave, runCalculatorExport])
+
+  const handleExport = useCallback(async (format: ExportFormat) => {
+    if (!currentDealId) {
+      // Ask the user whether to save first or export-only
+      setUnsavedExportPrompt(format)
+      return
+    }
+    setExporting(true)
+    try {
+      const res = await runCalculatorExport(format, currentDealId)
+      setExportOpen(false)
+      showToast(res.truncated ? '✓ Heruntergeladen — Datei zu groß zum Speichern' : '✓ Export erstellt')
+    } catch (e) {
+      showToast(`Export fehlgeschlagen: ${e instanceof Error ? e.message : String(e)}`)
+    } finally {
+      setExporting(false)
+    }
+  }, [currentDealId, runCalculatorExport])
+
+  const handleExportOnlyFromPrompt = useCallback(async () => {
+    if (!unsavedExportPrompt) return
+    const fmt = unsavedExportPrompt
+    setUnsavedExportPrompt(null)
+    setExporting(true)
+    try {
+      await runCalculatorExport(fmt, null)
+      setExportOpen(false)
+      showToast('✓ Export erstellt — nicht im Deal-Verlauf gespeichert')
+    } catch (e) {
+      showToast(`Export fehlgeschlagen: ${e instanceof Error ? e.message : String(e)}`)
+    } finally {
+      setExporting(false)
+    }
+  }, [unsavedExportPrompt, runCalculatorExport])
+
+  const handleSaveAndExportFromPrompt = useCallback(() => {
+    if (!unsavedExportPrompt) return
+    setPendingExportAfterSave(unsavedExportPrompt)
+    setUnsavedExportPrompt(null)
+    setSaveOpen(true)
+  }, [unsavedExportPrompt])
 
   return (
     <>
-      {/* Hidden print sheet */}
-      <div id="vestora-print-sheet" aria-hidden="true" />
+      <SaveDealModal
+        open={saveOpen}
+        onClose={() => setSaveOpen(false)}
+        defaultLink={inputs.listingUrl}
+        onSave={handleSaveDeal}
+      />
+      <ExportDealModal
+        open={exportOpen}
+        onClose={() => { if (!exporting) setExportOpen(false) }}
+        onExport={(f) => { void handleExport(f) }}
+        busy={exporting}
+      />
+
+      {/* Unsaved-deal export prompt */}
+      {unsavedExportPrompt && (
+        <div
+          onMouseDown={(e) => { if (e.target === e.currentTarget) setUnsavedExportPrompt(null) }}
+          style={{ position: 'fixed', inset: 0, zIndex: 110, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+        >
+          <div style={{
+            width: '100%', maxWidth: 440,
+            background: '#ffffff', borderRadius: 12,
+            padding: '22px 24px 20px',
+            boxShadow: '0 24px 48px rgba(0,0,0,0.25)',
+            display: 'flex', flexDirection: 'column', gap: 14,
+          }}>
+            <h3 style={{ margin: 0, font: '600 17px/1.3 var(--font-dm-sans), sans-serif', color: '#0a0a0a' }}>
+              Deal noch nicht gespeichert
+            </h3>
+            <p style={{ margin: 0, font: '400 13.5px/1.5 var(--font-dm-sans), sans-serif', color: '#6a6a6a' }}>
+              Möchtest du den Deal jetzt speichern, damit der Export im Verlauf erhalten bleibt?
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => { void handleExportOnlyFromPrompt() }}
+                style={{ padding: '9px 16px', borderRadius: 8, background: '#ffffff', border: '1px solid #d8d8d8', font: '500 13px/1 var(--font-dm-sans), sans-serif', color: '#0a0a0a', cursor: 'pointer' }}
+              >
+                Nur exportieren
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveAndExportFromPrompt}
+                style={{
+                  padding: '9px 16px', borderRadius: 8,
+                  background: 'linear-gradient(to bottom, #3d3d3d, #141414)',
+                  border: '1px solid rgba(0,0,0,0.5)',
+                  font: '500 13px/1 var(--font-dm-sans), sans-serif', color: '#ffffff',
+                  cursor: 'pointer',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.3), 0 4px 12px rgba(0,0,0,0.18)',
+                }}
+              >
+                Speichern & exportieren
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Toast notification */}
       {toast && (
@@ -1258,20 +1449,8 @@ export default function Calculator() {
 
       <div style={{ padding: '28px 24px 28px', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-        {/* ── ACTION BUTTONS — own row, above grid, not part of grid ── */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-          <button onClick={onSave} className="v-actionbtn">
-            <VIcon name="bookmark" size={14} />
-            <span>Deal speichern</span>
-          </button>
-          <button onClick={onExport} className="v-actionbtn">
-            <VIcon name="download" size={14} />
-            <span>Deal exportieren</span>
-          </button>
-        </div>
-
         {/* ── CALCULATOR GRID ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 2fr', gap: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 2fr', gap: 24, alignItems: 'start' }}>
 
         {/* ── SIDEBAR ── */}
         <aside style={{ alignSelf: 'start', position: 'sticky', top: 88, padding: 16, borderRadius: 12, background: '#ffffff', border: '1px solid #e5e5e5', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -1299,6 +1478,15 @@ export default function Calculator() {
           </InputGroup>
           <Divider />
 
+          <InputGroup label="Objektdaten">
+            <NumberInput label="Wohnfläche" suffix="m²" value={inputs.wohnflaeche} onChange={upd('wohnflaeche')} info="Wohnfläche der Immobilie in Quadratmetern — Grundlage für Kaufpreis pro m² und Gesamtkosten pro m²." />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <NumberInput label="Zimmer" value={inputs.zimmer} onChange={upd('zimmer')} info="Anzahl der Zimmer — Dezimalwerte wie 2,5 sind möglich." />
+              <NumberInput label="Baujahr" value={inputs.baujahr} onChange={upd('baujahr')} placeholder="z. B. 1995" raw info="Baujahr der Immobilie — relevant für Modernisierungs- und Sanierungsbedarf." />
+            </div>
+          </InputGroup>
+          <Divider />
+
           <InputGroup label="Kosten">
             <NumberInput label="Kaufpreis" prefix="€" value={inputs.price} onChange={upd('price')} info="Der mit dem Verkäufer vereinbarte Preis für die Immobilie — ohne Kaufnebenkosten (Grunderwerbsteuer, Notar, Grundbuch, Makler)." />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -1321,7 +1509,10 @@ export default function Calculator() {
               />
             </div>
             <NumberInput label="Renovierung" prefix="€" value={inputs.reno} onChange={upd('reno')} info="Einmalige Modernisierungs- und Instandsetzungskosten, die vor oder kurz nach dem Kauf anfallen." />
-            <NumberInput label="Laufende Kosten / Monat" prefix="€" value={inputs.opCosts} onChange={upd('opCosts')} info="Monatliche nicht umlegbare Bewirtschaftungskosten: Verwaltung, Instandhaltungsrücklage, Versicherungen, Grundsteuer — ohne Kapitaldienst." />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <NumberInput label="Laufende Kosten / Monat" prefix="€" value={inputs.opCosts} onChange={upd('opCosts')} info="Monatliche nicht umlegbare Bewirtschaftungskosten: Verwaltung, Instandhaltungsrücklage, Versicherungen, Grundsteuer — ohne Kapitaldienst." />
+              <NumberInput label="Hausgeld / Monat" prefix="€" value={inputs.hausgeld} onChange={upd('hausgeld')} info="Monatliches Hausgeld bei Eigentumswohnungen (Instandhaltungsrücklage, Verwaltung, etc.) — wird zu den laufenden Kosten addiert." />
+            </div>
           </InputGroup>
           <Divider />
 
@@ -1343,7 +1534,7 @@ export default function Calculator() {
         </aside>
 
         {/* ── MAIN ── */}
-        <main style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
+        <main id="vestora-export-target" style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
 
           {/* Verdict + Score cards */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -1397,9 +1588,16 @@ export default function Calculator() {
               <SumRow k="Zins / Tilgung" v={`${String(inputs.rate).replace('.', ',')}% / ${String(inputs.amort).replace('.', ',')}%`} />
             </div>
 
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 18, paddingBottom: 16, borderBottom: '1px solid rgba(38,37,30,0.08)' }}>
+              <SumRow k="Kaufpreis / m²" v={r.wohnflaeche > 0 ? `${fmtEUR(r.pricePerSqm)}/m²` : '—'} />
+              <SumRow k="Brutto-Mietrendite" v={r.price > 0 ? fmtPct(r.bruttoMietrendite) : '—'} />
+              <SumRow k="Gesamtkosten / m²" v={r.wohnflaeche > 0 ? `${fmtEUR(r.totalCostPerSqm)}/m²` : '—'} />
+              <span />
+            </div>
+
             <div style={{ display: 'grid', gridTemplateColumns: '150px 1fr 120px', rowGap: 12, columnGap: 14, alignItems: 'center' }}>
               <WaterRow color="#1C1C1C" label="Effektive Miete" value={fmtEUR(r.effectiveRentMon)} width={1} />
-              <WaterRow color="#1C1C1C" label="Laufende Kosten" value={fmtEUR(-r.opMon)} width={r.effectiveRentMon > 0 ? r.opMon / r.effectiveRentMon : 0} valueColor="#26251e" />
+              <WaterRow color="#1C1C1C" label="Laufende Kosten" value={fmtEUR(-r.totalOpMon)} width={r.effectiveRentMon > 0 ? r.totalOpMon / r.effectiveRentMon : 0} valueColor="#26251e" />
               <WaterRow color="#1C1C1C" label="Kapitaldienst" value={fmtEUR(-r.monthlyDebt)} width={r.effectiveRentMon > 0 ? r.monthlyDebt / r.effectiveRentMon : 0} valueColor="#26251e" />
               <span style={{ font: '500 10.5px/1.27 var(--font-dm-sans), sans-serif', letterSpacing: 0.6, textTransform: 'uppercase', color: '#26251e', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ width: 8, height: 8, borderRadius: 2, background: cfBarColor }} />
@@ -1415,7 +1613,7 @@ export default function Calculator() {
           </section>
 
           {/* Charts */}
-          <section style={{ padding: '12px 16px', borderRadius: 12, background: '#ffffff', border: '1px solid #e5e5e5', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: 12, flexGrow: 1 }}>
+          <section style={{ padding: '12px 16px', borderRadius: 12, background: '#ffffff', border: '1px solid #e5e5e5', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
               <h3 style={{ margin: 0, font: '400 22px/1.3 var(--font-dm-sans), sans-serif', letterSpacing: -0.11, color: '#26251e' }}>
                 {termYr}-Jahres-Projektion{' '}
@@ -1477,6 +1675,54 @@ export default function Calculator() {
               }
             </div>
           </section>
+
+          {/* ── ACTION BUTTONS — full-width row below projection ── */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
+            <button
+              onClick={onSave}
+              style={{
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 9,
+                width: '100%', padding: '14px 20px',
+                background: 'linear-gradient(to bottom, #3d3d3d, #141414)',
+                color: '#ffffff', borderRadius: 10,
+                border: '1px solid rgba(0,0,0,0.5)',
+                font: '500 15px/1 var(--font-dm-sans), sans-serif', letterSpacing: '-0.1px',
+                cursor: 'pointer',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.08)',
+                transition: 'opacity 150ms ease, box-shadow 150ms ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.opacity = '0.9'
+                e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.4), 0 6px 16px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.08)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.opacity = '1'
+                e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.08)'
+              }}
+            >
+              <VIcon name="bookmark" size={16} />
+              Deal speichern
+            </button>
+            <button
+              onClick={onExport}
+              style={{
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 9,
+                width: '100%', padding: '14px 20px',
+                background: '#ffffff',
+                color: '#0a0a0a', borderRadius: 10,
+                border: '1px solid #d8d8d8',
+                font: '500 15px/1 var(--font-dm-sans), sans-serif', letterSpacing: '-0.1px',
+                cursor: 'pointer',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                transition: 'background 150ms ease, border-color 150ms ease, box-shadow 150ms ease',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = '#fafaf8'; e.currentTarget.style.borderColor = '#bbbbbb'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = '#ffffff'; e.currentTarget.style.borderColor = '#d8d8d8'; e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.04)' }}
+            >
+              <VIcon name="download" size={16} />
+              Deal exportieren
+            </button>
+          </div>
         </main>
 
         </div>{/* end calculator grid */}

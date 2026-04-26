@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useDashboardHref } from '@/hooks/useDashboardHref'
 
 const WORDS = ['Investoren', 'Eigennutzer', 'Vermieter', 'Käufer', 'Analysten']
 
@@ -148,6 +149,7 @@ function CityMap() {
 export default function Hero() {
   const [activeIdx, setActiveIdx] = useState(0)
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null)
+  const ctaHref = useDashboardHref()
 
   useEffect(() => {
     const t = setInterval(() => setActiveIdx(i => (i + 1) % WORDS.length), 3500)
@@ -218,7 +220,7 @@ export default function Hero() {
           </div>
 
           <div style={{ marginTop: 32, display: 'flex', alignItems: 'center', gap: 10 }}>
-            <a href="#calculator" className="cp-cta-pill" style={{ padding: '12px 26px', fontSize: 15 }}>
+            <a href={ctaHref} className="cp-cta-pill" style={{ padding: '12px 26px', fontSize: 15 }}>
               Jetzt starten
             </a>
             <a href="#features" className="cp-cta-ghost" style={{ padding: '12px 26px', fontSize: 15 }}>

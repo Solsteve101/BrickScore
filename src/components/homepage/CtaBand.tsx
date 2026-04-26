@@ -1,6 +1,9 @@
 'use client'
 
+import { useDashboardHref } from '@/hooks/useDashboardHref'
+
 export default function CtaBand() {
+  const ctaHref = useDashboardHref()
   return (
     <section style={{ padding: '0 5% 0', background: '#fff' }}>
       <div
@@ -85,7 +88,7 @@ export default function CtaBand() {
         </p>
 
         <a
-          href="#calculator"
+          href={ctaHref}
           style={{
             position: 'relative',
             display: 'inline-flex',

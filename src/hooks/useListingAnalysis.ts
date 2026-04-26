@@ -11,6 +11,7 @@ export interface ListingData {
   bundeslandCode: string | null
   objektart: string | null
   zustand: string | null
+  hausgeld: number | null
   monthlyRent: number | null
   grestPct: number | null
   hatMakler: boolean | null

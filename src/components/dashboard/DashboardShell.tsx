@@ -1,0 +1,38 @@
+'use client'
+
+import { useEffect, type ReactNode } from 'react'
+import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
+import Sidebar from './Sidebar'
+
+export default function DashboardShell({ children }: { children: ReactNode }) {
+  const router = useRouter()
+  const { status } = useSession()
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.replace('/login?callbackUrl=/dashboard')
+    }
+  }, [status, router])
+
+  if (status === 'loading' || status === 'unauthenticated') {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fafafa' }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, color: '#7a7a7a', font: '500 13.5px/1 var(--font-dm-sans), sans-serif' }}>
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ animation: 'vestora-spin 0.9s linear infinite' }}>
+            <circle cx="8" cy="8" r="6" stroke="currentColor" strokeOpacity="0.25" strokeWidth="2" />
+            <path d="M14 8a6 6 0 0 0-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+          Lädt…
+        </span>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ display: 'flex', minHeight: '100vh', background: '#fafafa' }}>
+      <Sidebar />
+      <main style={{ flex: 1, minWidth: 0 }}>{children}</main>
+    </div>
+  )
+}

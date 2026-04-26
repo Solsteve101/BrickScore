@@ -35,8 +35,11 @@ interface ClaudeExtracted {
   bundesland: string | null
   objektart: string | null
   zustand: string | null
-  geschaetzte_kaltmiete_pro_qm: number | null
-  hat_makler: boolean | null
+  hausgeld: number | null
+  monatsmiete: number | null
+  hat_makler: boolean
+  etage: number | null
+  stellplatz: string | null
 }
 
 interface RequestBody {
@@ -44,32 +47,51 @@ interface RequestBody {
   text?: string
 }
 
-const EXTRACTION_PROMPT = `Extrahiere aus diesem Immobilieninserat folgende Daten als JSON. Antworte NUR mit JSON, nichts anderes:
+const EXTRACTION_PROMPT = `Du bist ein präziser Immobilien-Daten-Extraktor für den deutschen Markt. Analysiere den folgenden Inseratstext und extrahiere ALLE verfügbaren Daten.
+
+WICHTIG:
+- Antworte NUR mit validem JSON, kein anderer Text, keine Erklärungen
+- Alle Preise als Zahlen ohne € Zeichen und ohne Punkte als Tausendertrenner (also 249000 statt 249.000)
+- Suche GRÜNDLICH nach jedem einzelnen Feld
+- Wenn ein Wert nicht gefunden wird, setze null
+
+SUCHHINWEISE für schwer zu findende Felder:
+- hausgeld: Wird auch genannt als 'Hausgeld', 'monatliches Hausgeld', 'Wohngeld', 'Nebenkosten (Hausgeld)', 'Betriebskosten', 'Bewirtschaftungskosten', 'mtl. Hausgeld', 'Hausgeld inkl.', oder steht unter 'Kosten' / 'Monatliche Kosten'
+- wohnflaeche: Wird auch genannt als 'Wohnfläche ca.', 'Wfl.', 'ca. X m²', 'Quadratmeter'
+- kaufpreis: Wird auch genannt als 'Kaufpreis', 'Preis', 'Angebotspreis', 'Verkaufspreis'
+- zimmer: Wird auch genannt als 'Zi.', 'Zimmer', 'Räume', kann Dezimalzahlen sein wie 1,5 oder 2,5
+- baujahr: Wird auch genannt als 'Baujahr', 'Bj.', 'erbaut', 'Fertigstellung'
+- monatsmiete: Wird auch genannt als 'Kaltmiete', 'Nettokaltmiete', 'Mieteinnahmen', 'mtl. Mieteinnahmen', 'Ist-Miete', 'Soll-Miete'. Bei Kapitalanlage-Inseraten steht oft eine tatsächliche Miete drin. NIEMALS schätzen — wenn keine konkrete Miete im Text steht, setze null.
+- hat_makler: Suche nach 'provisionsfrei', 'keine Maklerprovision', 'keine Provision', 'ohne Provision' (dann false). Suche nach 'Provision', 'Käuferprovision', 'Maklerprovision', 'Courtage' (dann true). Wenn nichts gefunden wird, setze true als Default.
+- laufende_kosten: Suche nach 'nicht umlagefähige Kosten', 'Instandhaltungsrücklage', 'Verwaltungskosten'
+
+JSON-Format:
 {
-  "kaufpreis": number|null,
-  "wohnflaeche": number|null,
-  "zimmer": number|null,
-  "baujahr": number|null,
-  "plz": string|null,
-  "ort": string|null,
-  "bundesland": string|null,
-  "objektart": string|null,
-  "zustand": string|null,
-  "geschaetzte_kaltmiete_pro_qm": number|null,
-  "hat_makler": boolean|null
+  "kaufpreis": number | null,
+  "wohnflaeche": number | null,
+  "zimmer": number | null,
+  "baujahr": number | null,
+  "plz": "string" | null,
+  "ort": "string" | null,
+  "bundesland": "string" | null,
+  "objektart": "string" | null,
+  "zustand": "string" | null,
+  "hausgeld": number | null,
+  "monatsmiete": number | null,
+  "hat_makler": boolean,
+  "etage": number | null,
+  "stellplatz": "string" | null
 }
 
-Regeln:
-- hat_makler: true wenn Maklerprovision erwähnt wird, false wenn "provisionsfrei" oder "keine Maklerkosten", null wenn unklar
-- geschaetzte_kaltmiete_pro_qm: realistische Marktmiete für diese Lage schätzen (in €/m²/Monat)
-- Preise als Zahlen ohne € Zeichen
-- null wenn nicht gefunden
+REGELN:
+- hausgeld ist der MONATLICHE Betrag in Euro
+- monatsmiete: NUR ausfüllen wenn eine konkrete Monatsmiete im Inserat steht. Niemals schätzen oder ableiten — sonst null.
+- Bei Bundesland: Immer den vollen Namen (z.B. 'Nordrhein-Westfalen' nicht 'NRW')
+- hat_makler: Default ist true, nur false wenn explizit provisionsfrei steht
 
 Inseratstext:`
 
 export async function POST(req: NextRequest) {
-  console.log('API Key exists:', !!process.env.ANTHROPIC_API_KEY, 'Firecrawl Key exists:', !!process.env.FIRECRAWL_API_KEY)
-
   let body: RequestBody
   try {
     body = await req.json() as RequestBody
@@ -80,7 +102,6 @@ export async function POST(req: NextRequest) {
   let content = ''
 
   if (body.url) {
-    console.log('Received URL:', body.url)
     try {
       const fcRes = await fetch('https://api.firecrawl.dev/v1/scrape', {
         method: 'POST',
@@ -92,23 +113,16 @@ export async function POST(req: NextRequest) {
         signal: AbortSignal.timeout(25000),
       })
 
-      console.log('Firecrawl response status:', fcRes.status)
-
       if (fcRes.ok) {
         const fcData = await fcRes.json() as { data?: { markdown?: string } }
         content = fcData.data?.markdown?.trim() ?? ''
-        console.log('Firecrawl content length:', content.length)
-      } else {
-        const errorBody = await fcRes.text()
-        console.log('Firecrawl error body:', errorBody.slice(0, 500))
       }
-    } catch (e) {
-      console.log('Firecrawl exception:', String(e))
+    } catch {
+      // fall through to length check below
     }
 
     // Require at least 200 chars of meaningful content — less means scrape failed or got a redirect/bot page
     if (content.length < 200) {
-      console.log('Firecrawl returned insufficient content:', content.length, 'chars')
       return NextResponse.json(
         { error: 'scrape_failed', message: 'Seite konnte nicht geladen werden. Bitte kopiere den Inseratstext manuell.' },
         { status: 422 },
@@ -116,12 +130,11 @@ export async function POST(req: NextRequest) {
     }
   } else if (body.text?.trim()) {
     content = body.text.trim()
-    console.log('Using text input, length:', content.length)
   } else {
     return NextResponse.json({ error: 'missing_input' }, { status: 400 })
   }
 
-  content = content.slice(0, 10000)
+  content = content.slice(0, 20000)
 
   let claudeRes: Response
   try {
@@ -134,24 +147,20 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 512,
+        max_tokens: 2048,
         messages: [{ role: 'user', content: `${EXTRACTION_PROMPT}\n${content}` }],
       }),
       signal: AbortSignal.timeout(20000),
     })
   } catch (e) {
-    console.log('Claude exception:', String(e))
     return NextResponse.json(
       { error: 'claude_failed', message: String(e) },
       { status: 500 },
     )
   }
 
-  console.log('Claude response status:', claudeRes.status)
-
   if (!claudeRes.ok) {
     const errorText = await claudeRes.text()
-    console.log('Claude error:', errorText.slice(0, 500))
     return NextResponse.json(
       { error: 'claude_failed', message: errorText },
       { status: 500 },
@@ -166,9 +175,7 @@ export async function POST(req: NextRequest) {
     const codeBlock = rawText.match(/```(?:json)?\s*([\s\S]*?)```/)
     const jsonStr = codeBlock ? codeBlock[1].trim() : rawText
     extracted = JSON.parse(jsonStr) as ClaudeExtracted
-    console.log('Extracted data:', JSON.stringify(extracted))
   } catch {
-    console.log('Parse failed, raw Claude text:', rawText.slice(0, 500))
     return NextResponse.json(
       { error: 'parse_failed', message: 'Daten konnten nicht aus dem Inserat extrahiert werden.' },
       { status: 422 },
@@ -177,7 +184,6 @@ export async function POST(req: NextRequest) {
 
   // Require a valid kaufpreis — without it the calculator is useless
   if (!extracted.kaufpreis || extracted.kaufpreis <= 0) {
-    console.log('Validation failed: kaufpreis =', extracted.kaufpreis)
     return NextResponse.json(
       { error: 'parse_failed', message: 'Kaufpreis konnte nicht ermittelt werden. Bitte Text manuell einfügen.' },
       { status: 422 },
@@ -188,9 +194,10 @@ export async function POST(req: NextRequest) {
     ? (STATE_NAME_TO_CODE[extracted.bundesland] ?? null)
     : null
 
-  const monthlyRent =
-    extracted.wohnflaeche != null && extracted.geschaetzte_kaltmiete_pro_qm != null
-      ? Math.round(extracted.wohnflaeche * extracted.geschaetzte_kaltmiete_pro_qm)
+  // Only use rent if it was explicitly stated in the listing — never estimate
+  const monthlyRent: number | null =
+    extracted.monatsmiete != null && extracted.monatsmiete > 0
+      ? Math.round(extracted.monatsmiete)
       : null
 
   const grestPct = bundeslandCode ? (GREST_BY_STATE[bundeslandCode] ?? null) : null
@@ -206,6 +213,7 @@ export async function POST(req: NextRequest) {
     bundeslandCode,
     objektart: extracted.objektart,
     zustand: extracted.zustand,
+    hausgeld: extracted.hausgeld,
     monthlyRent,
     grestPct,
     hatMakler: extracted.hat_makler,

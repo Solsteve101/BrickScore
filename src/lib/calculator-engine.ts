@@ -28,6 +28,7 @@ export interface CalcInputs {
   price: string
   reno: string
   opCosts: string
+  hausgeld: string
   equity: string
   rate: string
   amort: string
@@ -35,6 +36,9 @@ export interface CalcInputs {
   rent: string
   vacancy: string
   otherInc: string
+  wohnflaeche: string
+  zimmer: string
+  baujahr: string
 }
 
 export interface CalcResult {
@@ -59,12 +63,21 @@ export interface CalcResult {
   effectiveRentYr: number
   opMon: number
   yearlyOp: number
+  hausgeld: number
+  totalOpMon: number
+  yearlyTotalOp: number
   monthlyCashflow: number
   annualCashflow: number
   grossYield: number
   netYield: number
   coc: number
   ltv: number
+  wohnflaeche: number
+  zimmer: number
+  baujahr: number
+  pricePerSqm: number
+  totalCostPerSqm: number
+  bruttoMietrendite: number
 }
 
 export interface ProjectionRow {
@@ -132,6 +145,8 @@ export function calc(d: CalcInputs): CalcResult {
   const nebenkosten = price * nkPct / 100
   const reno   = +d.reno   || 0
   const opMon  = +d.opCosts || 0
+  const hausgeld = +d.hausgeld || 0
+  const totalOpMon = opMon + hausgeld
   const gesamt = price + nebenkosten + reno
 
   const equity = +d.equity || 0
@@ -149,13 +164,21 @@ export function calc(d: CalcInputs): CalcResult {
   const effectiveRentMon = (rent + otherInc) * (1 - vacancy)
   const effectiveRentYr  = effectiveRentMon * 12
   const yearlyOp = opMon * 12
+  const yearlyTotalOp = totalOpMon * 12
 
-  const monthlyCashflow = effectiveRentMon - opMon - monthlyDebt
+  const monthlyCashflow = effectiveRentMon - totalOpMon - monthlyDebt
   const annualCashflow  = monthlyCashflow * 12
   const grossYield = gesamt > 0 ? (rent * 12) / gesamt * 100 : 0
-  const netYield   = gesamt > 0 ? (effectiveRentYr - yearlyOp) / gesamt * 100 : 0
+  const netYield   = gesamt > 0 ? (effectiveRentYr - yearlyTotalOp) / gesamt * 100 : 0
   const coc        = equity > 0 ? annualCashflow / equity * 100 : 0
   const ltv        = price  > 0 ? loan / price * 100 : 0
+
+  const wohnflaeche = +d.wohnflaeche || 0
+  const zimmer = +d.zimmer || 0
+  const baujahr = +d.baujahr || 0
+  const pricePerSqm = wohnflaeche > 0 ? price / wohnflaeche : 0
+  const totalCostPerSqm = wohnflaeche > 0 ? gesamt / wohnflaeche : 0
+  const bruttoMietrendite = price > 0 ? (rent * 12) / price * 100 : 0
 
   return {
     price, nkPct, nebenkosten, nkComps: comps, reno, gesamt,
@@ -163,8 +186,11 @@ export function calc(d: CalcInputs): CalcResult {
     monthlyDebt, monthlyInterest, monthlyPrincipal,
     rent, otherInc, vacancy: vacancy * 100,
     effectiveRentMon, effectiveRentYr, opMon, yearlyOp,
+    hausgeld, totalOpMon, yearlyTotalOp,
     monthlyCashflow, annualCashflow,
     grossYield, netYield, coc, ltv,
+    wohnflaeche, zimmer, baujahr,
+    pricePerSqm, totalCostPerSqm, bruttoMietrendite,
   }
 }
 
@@ -184,7 +210,7 @@ export function project10yr(r: CalcResult, years = 10): ProjectionRow[] {
       yearInterest += interest
       yearPrincipal += principal
     }
-    const yearCf = r.effectiveRentYr - r.yearlyOp - (yearInterest + yearPrincipal)
+    const yearCf = r.effectiveRentYr - r.yearlyTotalOp - (yearInterest + yearPrincipal)
     cumCf += yearCf
     rows.push({ year: y, balance, yearInterest, yearPrincipal, yearCf, cumCf, tilgungSum: r.loan - balance })
   }
