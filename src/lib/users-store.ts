@@ -39,6 +39,28 @@ export async function createUser(user: StoredUser): Promise<void> {
   await writeAll(users)
 }
 
+export async function findUserById(id: string): Promise<StoredUser | null> {
+  const users = await readAll()
+  return users.find((u) => u.id === id) ?? null
+}
+
+export async function updateUser(id: string, patch: Partial<Pick<StoredUser, 'name' | 'image' | 'passwordHash'>>): Promise<StoredUser | null> {
+  const users = await readAll()
+  const idx = users.findIndex((u) => u.id === id)
+  if (idx < 0) return null
+  users[idx] = { ...users[idx], ...patch }
+  await writeAll(users)
+  return users[idx]
+}
+
+export async function deleteUserById(id: string): Promise<boolean> {
+  const users = await readAll()
+  const next = users.filter((u) => u.id !== id)
+  if (next.length === users.length) return false
+  await writeAll(next)
+  return true
+}
+
 export async function upsertGoogleUser(profile: { email: string; name?: string | null; image?: string | null }): Promise<StoredUser> {
   const users = await readAll()
   const norm = profile.email.toLowerCase().trim()

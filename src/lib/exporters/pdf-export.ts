@@ -2,6 +2,7 @@ import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import type { CalcInputs, CalcResult, ProjectionRow } from '../calculator-engine'
 import { STATES } from '../calculator-engine'
+import type { UsagePlan } from '../usage-store'
 import { fmtEurDe, fmtPctDe, fmtNumDe, fmtDateDe, safeFilename } from './format-helpers'
 
 interface PdfPayload {
@@ -14,12 +15,13 @@ interface PdfPayload {
   termYr: number
   score: number
   verdict: string
+  plan?: UsagePlan
 }
 
 const FOOTER_DISCLAIMER = 'Alle Berechnungen sind Richtwerte und keine Anlageberatung.'
 const FOOTER_BRAND = 'BrickScore — brickscore.de'
 
-function addFooter(doc: jsPDF, pageNum: number, totalPages: number) {
+function addFooter(doc: jsPDF, pageNum: number, totalPages: number, plan: UsagePlan) {
   const w = doc.internal.pageSize.getWidth()
   const h = doc.internal.pageSize.getHeight()
   doc.setDrawColor(220)
@@ -29,8 +31,24 @@ function addFooter(doc: jsPDF, pageNum: number, totalPages: number) {
   doc.setFontSize(8)
   doc.setTextColor(120)
   doc.text(FOOTER_DISCLAIMER, 40, h - 24)
-  doc.text(FOOTER_BRAND, w / 2, h - 24, { align: 'center' })
+  if (plan !== 'business') {
+    doc.text(FOOTER_BRAND, w / 2, h - 24, { align: 'center' })
+  }
   doc.text(`Seite ${pageNum} / ${totalPages}`, w - 40, h - 24, { align: 'right' })
+}
+
+function addDiagonalWatermark(doc: jsPDF) {
+  const w = doc.internal.pageSize.getWidth()
+  const h = doc.internal.pageSize.getHeight()
+  const state = doc as unknown as { GState: new (opts: { opacity: number }) => unknown; setGState: (gs: unknown) => void }
+  const hasGState = typeof state.GState === 'function' && typeof state.setGState === 'function'
+  if (hasGState) state.setGState(new state.GState({ opacity: 0.12 }))
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(56)
+  doc.setTextColor(120, 120, 120)
+  doc.text('BrickScore — brickscore.de', w / 2, h / 2, { align: 'center', angle: 45 })
+  if (hasGState) state.setGState(new state.GState({ opacity: 1 }))
+  doc.setTextColor(10, 10, 10)
 }
 
 function drawLogo(doc: jsPDF, x: number, y: number) {
@@ -54,12 +72,14 @@ export interface ExportResult {
 }
 
 export async function exportPdf(payload: PdfPayload): Promise<ExportResult> {
-  const { titel, link, bilder, inputs, result: r, projection, termYr, score, verdict } = payload
+  const { titel, link, bilder, inputs, result: r, projection, termYr, score, verdict, plan = 'free' } = payload
   const doc = new jsPDF({ unit: 'pt', format: 'a4' })
   const w = doc.internal.pageSize.getWidth()
 
   // ─── PAGE 1 — Cover ──────────────────────────────────────
-  drawLogo(doc, 40, 50)
+  if (plan !== 'business') {
+    drawLogo(doc, 40, 50)
+  }
 
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(28)
@@ -94,14 +114,16 @@ export async function exportPdf(payload: PdfPayload): Promise<ExportResult> {
   doc.setTextColor(60, 60, 60)
   doc.text(`${verdict}  ·  Deal-Score: ${score} / 100`, 40, 388)
 
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(10)
-  doc.setTextColor(150)
-  doc.text('Erstellt mit BrickScore — brickscore.de', 40, doc.internal.pageSize.getHeight() - 60)
+  if (plan !== 'business') {
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(10)
+    doc.setTextColor(150)
+    doc.text('Erstellt mit BrickScore — brickscore.de', 40, doc.internal.pageSize.getHeight() - 60)
+  }
 
   // ─── PAGE 2 — Objektübersicht ────────────────────────────
   doc.addPage()
-  pageHeader(doc, 'Objektübersicht')
+  pageHeader(doc, 'Objektübersicht', plan)
 
   autoTable(doc, {
     startY: 110,
@@ -144,7 +166,7 @@ export async function exportPdf(payload: PdfPayload): Promise<ExportResult> {
 
   // ─── PAGE 3 — Finanzierung & Kosten ──────────────────────
   doc.addPage()
-  pageHeader(doc, 'Finanzierung & Kosten')
+  pageHeader(doc, 'Finanzierung & Kosten', plan)
 
   autoTable(doc, {
     startY: 110,
@@ -186,7 +208,7 @@ export async function exportPdf(payload: PdfPayload): Promise<ExportResult> {
 
   // ─── PAGE 4 — Rendite-Analyse ────────────────────────────
   doc.addPage()
-  pageHeader(doc, 'Rendite-Analyse')
+  pageHeader(doc, 'Rendite-Analyse', plan)
 
   autoTable(doc, {
     startY: 110,
@@ -224,7 +246,7 @@ export async function exportPdf(payload: PdfPayload): Promise<ExportResult> {
 
   // ─── PAGE 5 — Cashflow-Projektion ────────────────────────
   doc.addPage()
-  pageHeader(doc, `Projektion über ${projection.length} Jahre`)
+  pageHeader(doc, `Projektion über ${projection.length} Jahre`, plan)
 
   autoTable(doc, {
     startY: 110,
@@ -249,11 +271,12 @@ export async function exportPdf(payload: PdfPayload): Promise<ExportResult> {
   doc.setTextColor(10, 10, 10)
   doc.text(`Restschuld nach ${termYr} Jahren: ${fmtEurDe(restschuldEnde)}`, 40, y5 + 28)
 
-  // ─── Footers ─────────────────────────────────────────────
+  // ─── Watermark + Footers ────────────────────────────────
   const total = doc.getNumberOfPages()
   for (let i = 1; i <= total; i++) {
     doc.setPage(i)
-    addFooter(doc, i, total)
+    if (plan === 'free') addDiagonalWatermark(doc)
+    addFooter(doc, i, total, plan)
   }
 
   const filename = `${safeFilename(titel || 'BrickScore_Deal')}.pdf`
@@ -261,8 +284,8 @@ export async function exportPdf(payload: PdfPayload): Promise<ExportResult> {
   return { blob, filename }
 }
 
-function pageHeader(doc: jsPDF, title: string) {
-  drawLogo(doc, 40, 40)
+function pageHeader(doc: jsPDF, title: string, plan: UsagePlan) {
+  if (plan !== 'business') drawLogo(doc, 40, 40)
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(18)
   doc.setTextColor(10, 10, 10)

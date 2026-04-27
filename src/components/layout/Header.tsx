@@ -6,7 +6,7 @@ import { useSession, signOut } from 'next-auth/react'
 
 const NAV_LINKS = [
   ['Meine Deals', '/dashboard'],
-  ['Preise', '#'],
+  ['Preise', '/preise'],
   ['Ressourcen', '#'],
 ] as const
 

@@ -10,6 +10,7 @@ export default function LoginPage() {
   const router = useRouter()
   const params = useSearchParams()
   const callbackUrl = params.get('callbackUrl') || '/dashboard'
+  const resetSuccess = params.get('reset') === 'success'
   const { status } = useSession()
 
   useEffect(() => {
@@ -86,6 +87,12 @@ export default function LoginPage() {
         <span style={{ height: 1, background: '#e5e5e5' }} />
       </div>
 
+      {resetSuccess && (
+        <div style={{ padding: '10px 12px', borderRadius: 8, background: 'rgba(31,138,101,0.10)', border: '1px solid rgba(31,138,101,0.25)', font: '400 13px/1.45 var(--font-dm-sans), sans-serif', color: '#1a6a45' }}>
+          Passwort erfolgreich zurückgesetzt. Du kannst dich jetzt anmelden.
+        </div>
+      )}
+
       <form onSubmit={onCredentialsSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <Field
           label="E-Mail"
@@ -115,7 +122,7 @@ export default function LoginPage() {
               </button>
             }
           />
-          <Link href="#" style={{ alignSelf: 'flex-end', font: '500 12.5px/1 var(--font-dm-sans), sans-serif', color: '#6a6a6a', textDecoration: 'none' }}>
+          <Link href="/forgot-password" style={{ alignSelf: 'flex-end', font: '500 12.5px/1 var(--font-dm-sans), sans-serif', color: '#6a6a6a', textDecoration: 'none' }}>
             Passwort vergessen?
           </Link>
         </div>

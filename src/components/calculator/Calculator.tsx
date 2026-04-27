@@ -25,6 +25,8 @@ import SaveDealModal from './SaveDealModal'
 import ExportDealModal, { type ExportFormat } from './ExportDealModal'
 import { saveDeal as persistDeal, buildKpis, findDealById, type SavedDeal } from '@/lib/deals-store'
 import { runExport } from '@/lib/exporters/run-export'
+import { hasTokens, spendTokens } from '@/lib/usage-store'
+import { pushToast } from '@/lib/toast'
 
 // ═══════════════════════════════════════════════════════════
 // CHART HELPERS
@@ -1162,20 +1164,20 @@ function LegendItem({ color, label }: { color: string; label: string }) {
 
 const DEFAULT_INPUTS: CalcInputs = {
   listingUrl: '',
-  city: 'Berlin',
-  state: 'BE',
+  city: '',
+  state: '',
   includeMakler: true,
   nkOverrides: {},
-  price: '420000',
-  reno: '10000',
-  opCosts: '360',
+  price: '0',
+  reno: '0',
+  opCosts: '0',
   hausgeld: '0',
-  equity: '140000',
+  equity: '0',
   rate: '3.5',
   amort: '1.5',
   term: '10',
-  rent: '2480',
-  vacancy: '3',
+  rent: '0',
+  vacancy: '0',
   otherInc: '0',
   wohnflaeche: '0',
   zimmer: '0',
@@ -1187,8 +1189,16 @@ export default function Calculator() {
   const [chart, setChart] = useState<'amort' | 'cashflow'>('amort')
   const [toast, setToast] = useState<string | null>(null)
   const [rentEstimated, setRentEstimated] = useState(false)
+  const sessionStarted = useRef(false)
 
   const upd = useCallback(<K extends keyof CalcInputs>(k: K) => (v: CalcInputs[K]) => {
+    if (!sessionStarted.current) {
+      // Manual session — charge 1 token on the first edit (skip if a deal was loaded or analysis happened)
+      sessionStarted.current = true
+      if (hasTokens('manual_session')) {
+        spendTokens('manual_session', 'Manueller Deal')
+      }
+    }
     setInputs((s) => ({ ...s, [k]: v }))
   }, [])
 
@@ -1200,6 +1210,7 @@ export default function Calculator() {
     if (!id) return
     const found = findDealById(id)
     if (!found) return
+    sessionStarted.current = true // loading a deal does not charge a manual session
     setInputs(found.inputs)
     setRentEstimated(false)
     setCurrentDealId(found.id)
@@ -1229,6 +1240,7 @@ export default function Calculator() {
   }
 
   const handleFill = useCallback((data: ListingData) => {
+    sessionStarted.current = true // analysis charged tokens already; no manual_session charge
     const updates: Partial<CalcInputs> = {
       reno: '0',
       opCosts: '0',
@@ -1319,6 +1331,7 @@ export default function Calculator() {
     setCurrentDealId(deal.id)
     setSaveOpen(false)
     showToast('✓ Deal gespeichert')
+    pushToast({ variant: 'success', message: 'Deal erfolgreich gespeichert.' })
 
     // If a "save & export" flow was queued, kick off the export now
     if (pendingExportAfterSave) {
@@ -1326,7 +1339,10 @@ export default function Calculator() {
       setPendingExportAfterSave(null)
       setExporting(true)
       void runCalculatorExport(fmt, deal.id)
-        .then((res) => showToast(res.truncated ? '✓ Heruntergeladen — Datei zu groß zum Speichern' : '✓ Export erstellt'))
+        .then((res) => {
+          showToast(res.truncated ? '✓ Heruntergeladen — Datei zu groß zum Speichern' : '✓ Export erstellt')
+          pushToast({ variant: 'success', message: 'Export wurde erstellt und heruntergeladen.' })
+        })
         .catch((e) => showToast(`Export fehlgeschlagen: ${e instanceof Error ? e.message : String(e)}`))
         .finally(() => { setExporting(false); setExportOpen(false) })
     }
@@ -1343,6 +1359,7 @@ export default function Calculator() {
       const res = await runCalculatorExport(format, currentDealId)
       setExportOpen(false)
       showToast(res.truncated ? '✓ Heruntergeladen — Datei zu groß zum Speichern' : '✓ Export erstellt')
+      pushToast({ variant: 'success', message: 'Export wurde erstellt und heruntergeladen.' })
     } catch (e) {
       showToast(`Export fehlgeschlagen: ${e instanceof Error ? e.message : String(e)}`)
     } finally {
@@ -1359,6 +1376,7 @@ export default function Calculator() {
       await runCalculatorExport(fmt, null)
       setExportOpen(false)
       showToast('✓ Export erstellt — nicht im Deal-Verlauf gespeichert')
+      pushToast({ variant: 'success', message: 'Export wurde erstellt und heruntergeladen.' })
     } catch (e) {
       showToast(`Export fehlgeschlagen: ${e instanceof Error ? e.message : String(e)}`)
     } finally {
@@ -1708,16 +1726,22 @@ export default function Calculator() {
               style={{
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 9,
                 width: '100%', padding: '14px 20px',
-                background: '#ffffff',
-                color: '#0a0a0a', borderRadius: 10,
-                border: '1px solid #d8d8d8',
+                background: 'linear-gradient(to bottom, #3d3d3d, #141414)',
+                color: '#ffffff', borderRadius: 10,
+                border: '1px solid rgba(0,0,0,0.5)',
                 font: '500 15px/1 var(--font-dm-sans), sans-serif', letterSpacing: '-0.1px',
                 cursor: 'pointer',
-                boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
-                transition: 'background 150ms ease, border-color 150ms ease, box-shadow 150ms ease',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.08)',
+                transition: 'opacity 150ms ease, box-shadow 150ms ease',
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = '#fafaf8'; e.currentTarget.style.borderColor = '#bbbbbb'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)' }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = '#ffffff'; e.currentTarget.style.borderColor = '#d8d8d8'; e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.04)' }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.opacity = '0.9'
+                e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.4), 0 6px 16px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.08)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.opacity = '1'
+                e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.08)'
+              }}
             >
               <VIcon name="download" size={16} />
               Deal exportieren

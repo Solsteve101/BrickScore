@@ -1,12 +1,12 @@
 'use client'
 
 import DashboardShell from '@/components/dashboard/DashboardShell'
-import SettingsClient from '@/components/dashboard/SettingsClient'
+import UsageClient from '@/components/dashboard/UsageClient'
 
-export default function SettingsPage() {
+export default function UsagePage() {
   return (
     <DashboardShell>
-      <SettingsClient />
+      <UsageClient />
     </DashboardShell>
   )
 }

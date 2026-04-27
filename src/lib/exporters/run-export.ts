@@ -9,6 +9,7 @@ import {
   triggerDownload,
   type ExportFormatKey,
 } from '../exports-store'
+import { spendTokens, hasTokens, getUsage, type UsagePlan } from '../usage-store'
 
 export interface RunExportInput {
   format: ExportFormatKey
@@ -29,14 +30,21 @@ export interface RunExportInput {
 export async function runExport(input: RunExportInput): Promise<{ filename: string; persisted: boolean; truncated: boolean }> {
   const { format, dealId, pngTargetId, ...rest } = input
 
+  if (!hasTokens('export')) {
+    throw new Error('Nicht genug Tokens für einen Export. Warte bis Montag oder upgrade auf Pro.')
+  }
+
+  const plan: UsagePlan = getUsage().plan
+
   const result =
     format === 'pdf'
-      ? await exportPdf({ ...rest })
+      ? await exportPdf({ ...rest, plan })
       : format === 'xlsx'
         ? exportXlsx({ titel: rest.titel, inputs: rest.inputs, result: rest.result, projection: rest.projection, termYr: rest.termYr, score: rest.score, verdict: rest.verdict })
-        : await exportPng(pngTargetId, rest.titel)
+        : await exportPng(pngTargetId, rest.titel, plan)
 
   triggerDownload(result.blob, result.filename)
+  spendTokens('export', `${format.toUpperCase()} · ${rest.titel || 'Deal'}`)
 
   let persisted = false
   let truncated = false

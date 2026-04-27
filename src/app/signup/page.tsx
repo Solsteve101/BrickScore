@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { signIn, useSession } from 'next-auth/react'
 import AuthShell from '@/components/auth/AuthShell'
+import { isValidReferralCodeFormat, setAppliedReferralCode } from '@/lib/referral-store'
 
 export default function SignupPage() {
   const router = useRouter()
@@ -20,13 +21,21 @@ export default function SignupPage() {
   const [showPw, setShowPw] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState<'google' | 'creds' | null>(null)
+  const [showRefInput, setShowRefInput] = useState(false)
+  const [refCode, setRefCode] = useState('')
+  const [refError, setRefError] = useState<string | null>(null)
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (loading) return
     setError(null)
+    setRefError(null)
     if (password.length < 8) { setError('Passwort muss mindestens 8 Zeichen haben.'); return }
     if (password !== confirm) { setError('Die Passwörter stimmen nicht überein.'); return }
+    if (refCode.trim() && !isValidReferralCodeFormat(refCode)) {
+      setRefError('Ungültiges Code-Format. Erwartet: BRICK-XXXX')
+      return
+    }
     setLoading('creds')
 
     const res = await fetch('/api/auth/register', {
@@ -40,6 +49,7 @@ export default function SignupPage() {
       setLoading(null)
       return
     }
+    if (refCode.trim()) setAppliedReferralCode(refCode)
     const signInRes = await signIn('credentials', { email, password, redirect: false })
     if (signInRes?.error) {
       setError('Konto erstellt — bitte jetzt anmelden.')
@@ -144,6 +154,37 @@ export default function SignupPage() {
         >
           {loading === 'creds' ? 'Registrieren…' : 'Registrieren'}
         </button>
+
+        {!showRefInput ? (
+          <button
+            type="button"
+            onClick={() => setShowRefInput(true)}
+            style={{
+              marginTop: -2, alignSelf: 'center',
+              background: 'transparent', border: 'none', padding: '4px 8px',
+              font: '500 13px/1.4 var(--font-dm-sans), sans-serif',
+              color: '#6a6a6a', cursor: 'pointer',
+              textDecoration: 'underline', textUnderlineOffset: 3,
+            }}
+          >
+            Hast du einen Einladungscode?
+          </button>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: -2 }}>
+            <Field
+              label="Einladungscode"
+              type="text"
+              value={refCode}
+              onChange={(v) => setRefCode(v.toUpperCase())}
+              autoComplete="off"
+            />
+            {refError && (
+              <span style={{ font: '400 12px/1.4 var(--font-dm-sans), sans-serif', color: '#cf2d56' }}>
+                {refError}
+              </span>
+            )}
+          </div>
+        )}
       </form>
 
       <p style={{ margin: 0, textAlign: 'center', font: '400 13.5px/1 var(--font-dm-sans), sans-serif', color: '#6a6a6a' }}>

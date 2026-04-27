@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { hasTokens, spendTokens, TOKEN_COST } from '@/lib/usage-store'
+import { pushToast } from '@/lib/toast'
 
 export interface ListingData {
   kaufpreis: number | null
@@ -38,6 +40,10 @@ async function callApi(payload: { url: string } | { text: string }): Promise<Lis
   return json
 }
 
+function hostFromUrl(url: string): string {
+  try { return new URL(url).hostname.replace(/^www\./, '') } catch { return 'Inserat' }
+}
+
 function errorMessage(e: unknown): string {
   if (e instanceof Error) {
     if (e.name === 'TimeoutError') return 'Analyse hat zu lange gedauert. Bitte Text manuell einfügen.'
@@ -53,17 +59,41 @@ export function useListingAnalysis() {
   const [error, setError] = useState<string | null>(null)
 
   const analyze = async (payload: { url: string } | { text: string }): Promise<ListingData | null> => {
+    const isUrl = 'url' in payload
+    const action = isUrl ? 'link_analyse' : 'text_analyse'
+    if (!hasTokens(action)) {
+      const cost = TOKEN_COST[action]
+      setError(`Nicht genug Tokens (${cost} benötigt). Warte bis Montag oder upgrade auf Pro.`)
+      setStatus('error')
+      return null
+    }
     setStatus('loading')
     setData(null)
     setError(null)
     try {
       const result = await callApi(payload)
+      // Charge tokens only on a successful analysis
+      const detail = isUrl ? hostFromUrl((payload as { url: string }).url) : 'Text-Paste'
+      spendTokens(action, detail)
       setData(result)
       setStatus('success')
+      if (isUrl) {
+        pushToast({
+          variant: 'success',
+          message: `Inserat analysiert — ${TOKEN_COST[action]} Tokens verbraucht.`,
+        })
+      }
       return result
     } catch (e) {
-      setError(errorMessage(e))
+      const msg = errorMessage(e)
+      setError(msg)
       setStatus('error')
+      if (isUrl) {
+        pushToast({
+          variant: 'error',
+          message: 'Inserat konnte nicht geladen werden. Versuche den Text-Import.',
+        })
+      }
       return null
     }
   }

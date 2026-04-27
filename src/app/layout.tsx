@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { DM_Sans } from 'next/font/google'
 import './globals.css'
 import AuthSessionProvider from '@/components/providers/SessionProvider'
+import ToastContainer from '@/components/toast/ToastContainer'
 import { auth } from '@/lib/auth'
 
 const dmSans = DM_Sans({
@@ -26,7 +27,10 @@ export default async function RootLayout({
   return (
     <html lang="de" className={`h-full antialiased ${dmSans.variable}`}>
       <body className="min-h-full flex flex-col">
-        <AuthSessionProvider session={session}>{children}</AuthSessionProvider>
+        <AuthSessionProvider session={session}>
+          {children}
+          <ToastContainer />
+        </AuthSessionProvider>
       </body>
     </html>
   )
