@@ -84,13 +84,15 @@ export default function SignupPage() {
         disabled={loading !== null}
         style={{
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-          width: '100%', padding: '12px 16px',
-          background: '#ffffff', border: '1px solid #d8d8d8', borderRadius: 10,
-          color: '#0a0a0a', font: '500 14.5px/1 var(--font-dm-sans), sans-serif',
-          cursor: loading ? 'default' : 'pointer',
+          width: '100%', padding: '10px 24px',
+          background: '#FFFFFF', border: '1px solid #D6D6D4', borderRadius: 10,
+          color: '#1C1C1C', font: '500 14px/1 var(--font-dm-sans), sans-serif',
+          cursor: loading ? 'not-allowed' : 'pointer',
           opacity: loading === 'google' ? 0.7 : 1,
-          boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+          transition: 'all 0.2s ease',
         }}
+        onMouseEnter={(e) => { if (!loading) e.currentTarget.style.background = '#F5F5F3' }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = '#FFFFFF' }}
       >
         <GoogleG />
         {loading === 'google' ? 'Weiterleiten…' : 'Mit Google registrieren'}
@@ -143,14 +145,23 @@ export default function SignupPage() {
           type="submit"
           disabled={loading !== null}
           style={{
-            marginTop: 4, width: '100%', padding: '13px 16px',
-            background: 'linear-gradient(to bottom, #3d3d3d, #141414)',
-            color: '#ffffff', borderRadius: 10, border: '1px solid rgba(0,0,0,0.5)',
-            font: '500 14.5px/1 var(--font-dm-sans), sans-serif', letterSpacing: '-0.1px',
-            cursor: loading ? 'default' : 'pointer',
+            marginTop: 4,
+            width: '100%',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '10px 24px',
+            background: '#1C1C1C',
+            color: '#FFFFFF',
+            borderRadius: 10,
+            border: 'none',
+            font: '500 14px/1 var(--font-dm-sans), sans-serif',
+            cursor: loading ? 'not-allowed' : 'pointer',
             opacity: loading === 'creds' ? 0.75 : 1,
-            boxShadow: '0 1px 2px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.08)',
+            transition: 'all 0.2s ease',
           }}
+          onMouseEnter={(e) => { if (!loading) e.currentTarget.style.background = '#2C2C2C' }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = '#1C1C1C' }}
         >
           {loading === 'creds' ? 'Registrieren…' : 'Registrieren'}
         </button>

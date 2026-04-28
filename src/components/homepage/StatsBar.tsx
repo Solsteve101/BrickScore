@@ -7,25 +7,17 @@ const STATS = [
 
 export default function StatsBar() {
   return (
-    <section style={{ padding: '72px 5%', background: '#fff' }}>
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
-          gap: 0,
-        }}
-      >
+    <section id="demo" style={{ padding: '72px 5%', background: '#fff', scrollMarginTop: 80 }}>
+      <div className="bs-stats-grid">
         {STATS.map((stat, i) => (
           <div
             key={stat.label}
-            style={{
-              padding: '0 32px',
-              borderLeft: i > 0 ? '1px solid #e5e5e5' : 'none',
-            }}
+            className={`bs-stat-cell bs-stat-${i}`}
+            style={{ padding: '0 32px' }}
           >
             <div
               style={{
-                font: '700 clamp(32px, 3.5vw, 48px)/1 var(--font-dm-sans), sans-serif',
+                font: '700 clamp(28px, 3.5vw, 48px)/1 var(--font-dm-sans), sans-serif',
                 letterSpacing: '-0.03em',
                 color: '#0a0a0a',
                 marginBottom: 8,
@@ -45,6 +37,24 @@ export default function StatsBar() {
           </div>
         ))}
       </div>
+      <style>{`
+        .bs-stats-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 0;
+        }
+        .bs-stat-cell { border-left: 1px solid #e5e5e5; }
+        .bs-stat-0 { border-left: none; }
+        @media (max-width: 768px) {
+          .bs-stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 32px 0;
+          }
+          .bs-stat-cell { padding: 0 16px !important; }
+          .bs-stat-0, .bs-stat-2 { border-left: none; }
+          .bs-stat-1, .bs-stat-3 { border-left: 1px solid #e5e5e5; }
+        }
+      `}</style>
     </section>
   )
 }

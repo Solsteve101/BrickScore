@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import type { ReactNode } from 'react'
+import { BrickScoreLogo } from '@/components/ui/brickscore-logo'
 
 export default function AuthShell({ children }: { children: ReactNode }) {
   return (
@@ -70,16 +71,19 @@ export default function AuthShell({ children }: { children: ReactNode }) {
               display: 'inline-flex',
               alignItems: 'center',
               gap: 8,
-              padding: '8px 14px',
-              borderRadius: 9999,
-              background: 'rgba(255,255,255,0.06)',
-              color: 'rgba(247,247,244,0.85)',
-              border: '1px solid rgba(255,255,255,0.1)',
+              padding: '10px 24px',
+              borderRadius: 10,
+              background: 'transparent',
+              color: '#FFFFFF',
+              border: '1px solid rgba(255,255,255,0.4)',
               textDecoration: 'none',
-              font: '500 13px/1 var(--font-dm-sans), sans-serif',
+              font: '500 14px/1 var(--font-dm-sans), sans-serif',
               alignSelf: 'flex-start',
-              transition: 'background 150ms ease',
+              transition: 'all 0.2s ease',
+              whiteSpace: 'nowrap',
             }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)' }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
           >
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
               <path d="M10 3l-5 5 5 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
@@ -91,12 +95,9 @@ export default function AuthShell({ children }: { children: ReactNode }) {
         {/* Bottom: brand + slogan + footer */}
         <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 28 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-              <svg viewBox="0 0 120 100" width={28} height={23} aria-hidden="true">
-                <path d="M60,52 L28,84 L28,70 L60,38 L92,70 L92,84 Z" fill="#f7f7f4" />
-                <path d="M52,32 L60,24 L100,24 L92,32 Z" fill="#f7f7f4" />
-              </svg>
-              <span style={{ font: '500 22px/1 var(--font-dm-sans), sans-serif', color: '#f7f7f4', letterSpacing: '-0.4px' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              <BrickScoreLogo height={18} color="#FFFFFF" style={{ display: 'block', flexShrink: 0, position: 'relative', top: -1, verticalAlign: 'middle' }} />
+              <span style={{ font: '600 22px/1 var(--font-dm-sans), sans-serif', color: '#f7f7f4', letterSpacing: '-0.4px' }}>
                 brickscore
               </span>
             </div>

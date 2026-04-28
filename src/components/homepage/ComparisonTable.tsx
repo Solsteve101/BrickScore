@@ -62,7 +62,18 @@ export default function ComparisonTable() {
       </div>
 
       {/* Table */}
-      <div style={{ maxWidth: 1000, margin: '0 auto', borderRadius: 20, overflow: 'hidden', boxShadow: '0 4px 16px rgba(0,0,0,0.06), 0 20px 56px rgba(0,0,0,0.09)' }}>
+      <div
+        className="bs-compare-scroll"
+        style={{
+          maxWidth: 1000,
+          margin: '0 auto',
+          borderRadius: 20,
+          overflowX: 'auto',
+          WebkitOverflowScrolling: 'touch',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.06), 0 20px 56px rgba(0,0,0,0.09)',
+        }}
+      >
+       <div style={{ minWidth: 720 }}>
         {/* Header */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 160px 180px 190px', background: '#fafafa', borderBottom: '1px solid #efefef' }}>
           <div style={{ padding: '20px 28px', font: '500 11px/1 var(--font-dm-sans)', color: '#aaaaaa', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
@@ -114,6 +125,7 @@ export default function ComparisonTable() {
             ))}
           </div>
         ))}
+       </div>
       </div>
 
       {/* Legend */}

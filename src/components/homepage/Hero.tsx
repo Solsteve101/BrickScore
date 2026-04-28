@@ -223,7 +223,7 @@ export default function Hero() {
             <a href={ctaHref} className="cp-cta-pill" style={{ padding: '12px 26px', fontSize: 15 }}>
               Jetzt starten
             </a>
-            <a href="#features" className="cp-cta-ghost" style={{ padding: '12px 26px', fontSize: 15 }}>
+            <a href="#demo" className="cp-cta-ghost" style={{ padding: '12px 26px', fontSize: 15 }}>
               Demo ansehen
             </a>
           </div>

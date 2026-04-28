@@ -293,6 +293,66 @@
 }
 .v-calc-scroll::-webkit-scrollbar-thumb:hover { background: rgba(10,10,10,0.3); }
 
+/* ─── Mobile responsive overrides (≤767px) ───
+   Uses !important to override per-element inline styles set via React `style={...}`.
+   Class hooks are added directly on the relevant components. */
+@media (max-width: 767px) {
+  /* StatsBar — 2×2 grid */
+  .bs-stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    row-gap: 32px !important;
+  }
+  .bs-stat-cell { padding: 0 16px !important; }
+  .bs-stat-0, .bs-stat-2 { border-left: none !important; }
+  .bs-stat-1, .bs-stat-3 { border-left: 1px solid #e5e5e5 !important; }
+
+  /* Testimonials — 1 col */
+  .bs-testimonials-grid { grid-template-columns: 1fr !important; }
+
+  /* TrustStatement — stack vertically */
+  .bs-trust-section {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 16px !important;
+  }
+  .bs-trust-divider {
+    width: 100% !important;
+    height: 1px !important;
+  }
+
+  /* Footer — stack columns */
+  .bs-footer-grid {
+    grid-template-columns: 1fr !important;
+    gap: 32px !important;
+    padding-bottom: 40px !important;
+  }
+  .bs-footer-bottom {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+    line-height: 1.5 !important;
+  }
+
+  /* CtaBand — tighter padding */
+  .bs-cta-band {
+    padding: 72px 28px !important;
+    gap: 36px !important;
+    margin: 56px 0 !important;
+  }
+
+  /* Feature tabs — stack text + mockup */
+  .bs-feature-tab-grid {
+    grid-template-columns: 1fr !important;
+    gap: 40px !important;
+    padding: 56px 5% !important;
+  }
+}
+
+/* Testimonials — 2 cols at tablet width */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .bs-testimonials-grid { grid-template-columns: repeat(2, 1fr) !important; }
+}
+
 /* ─── Print styles ─── */
 #vestora-print-sheet { display: none; }
 

@@ -2,16 +2,30 @@
 
 import Link from 'next/link'
 import { useState, useRef, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
+import { BrickScoreLogo } from '@/components/ui/brickscore-logo'
+import { MobileNav } from '@/components/mobile-nav'
 
 const NAV_LINKS = [
-  ['Meine Deals', '/dashboard'],
+  ['Dashboard', '/dashboard/new'],
   ['Preise', '/preise'],
-  ['Ressourcen', '#'],
+  ['About', '/#about'],
 ] as const
 
 export default function Header() {
   const { data: session, status } = useSession()
+  const pathname = usePathname()
+
+  const handleNavClick = (href: string) => (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (href.startsWith('/#') && pathname === '/') {
+      e.preventDefault()
+      const id = href.slice(2)
+      const el = document.getElementById(id)
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }
+
   return (
     <header
       style={{
@@ -23,13 +37,8 @@ export default function Header() {
       }}
     >
       <div
-        style={{
-          padding: '0 48px',
-          height: 68,
-          display: 'grid',
-          gridTemplateColumns: '1fr auto 1fr',
-          alignItems: 'center',
-        }}
+        className="px-5 md:px-12 flex items-center justify-between"
+        style={{ height: 68 }}
       >
         {/* Logo — left */}
         <Link
@@ -39,16 +48,12 @@ export default function Header() {
             alignItems: 'center',
             gap: 8,
             textDecoration: 'none',
-            justifySelf: 'start',
           }}
         >
-          <svg viewBox="0 0 120 100" width={22} height={18} aria-hidden="true" style={{ display: 'block', flexShrink: 0 }}>
-            <path d="M60,52 L28,84 L28,70 L60,38 L92,70 L92,84 Z" fill="#0a0a0a" />
-            <path d="M52,32 L60,24 L100,24 L92,32 Z" fill="#0a0a0a" />
-          </svg>
+          <BrickScoreLogo height={14} style={{ display: 'block', flexShrink: 0, position: 'relative', top: -1, verticalAlign: 'middle' }} />
           <span
             style={{
-              font: '500 20px/1 var(--font-dm-sans), sans-serif',
+              font: '600 18px/1 var(--font-dm-sans), sans-serif',
               color: '#0a0a0a',
               letterSpacing: '-0.4px',
             }}
@@ -57,18 +62,13 @@ export default function Header() {
           </span>
         </Link>
 
-        {/* Nav — center */}
-        <nav
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 36,
-          }}
-        >
+        {/* Center nav — desktop only */}
+        <nav className="hidden md:flex items-center" style={{ gap: 36 }}>
           {NAV_LINKS.map(([label, href]) => (
             <Link
               key={label}
               href={href}
+              onClick={handleNavClick(href)}
               style={{
                 font: '400 15px/1 var(--font-dm-sans), sans-serif',
                 color: '#4a4a4a',
@@ -85,15 +85,12 @@ export default function Header() {
           ))}
         </nav>
 
-        {/* Actions — right */}
-        <div
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 20,
-            justifySelf: 'end',
-          }}
-        >
+        {/* Right actions */}
+        <div className="flex items-center" style={{ gap: 12 }}>
+          {/* Mobile hamburger menu — first on mobile */}
+          <MobileNav />
+
+          {/* Auth area: UserMenu (any width) or CTAs (desktop only) */}
           {status === 'loading' ? (
             <span style={{ width: 36, height: 36 }} aria-hidden="true" />
           ) : status === 'authenticated' && session?.user ? (
@@ -103,64 +100,50 @@ export default function Header() {
               image={session.user.image ?? null}
             />
           ) : (
-            <>
+            <div className="hidden md:flex items-center" style={{ gap: 20 }}>
               <Link
                 href="/login?callbackUrl=/dashboard"
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  padding: '9px 18px',
-                  background: 'linear-gradient(to bottom, #ffffff, #f5f5f5)',
-                  color: '#0a0a0a',
-                  borderRadius: 8,
+                  justifyContent: 'center',
+                  padding: '10px 24px',
+                  background: '#FFFFFF',
+                  color: '#1C1C1C',
+                  borderRadius: 10,
                   font: '500 14px/1 var(--font-dm-sans), sans-serif',
                   textDecoration: 'none',
-                  border: '1px solid #d8d8d8',
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.07), 0 3px 10px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.95)',
-                  transition: 'box-shadow 150ms ease, border-color 150ms ease',
+                  border: '1px solid #D6D6D4',
+                  transition: 'all 0.2s ease',
                   whiteSpace: 'nowrap',
                 }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1), 0 5px 16px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)'
-                  e.currentTarget.style.borderColor = '#bbbbbb'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.07), 0 3px 10px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.95)'
-                  e.currentTarget.style.borderColor = '#d8d8d8'
-                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = '#F5F5F3' }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = '#FFFFFF' }}
               >
                 Anmelden
               </Link>
-
               <Link
                 href="/signup"
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  padding: '10px 22px',
-                  background: 'linear-gradient(to bottom, #3d3d3d, #141414)',
-                  color: '#ffffff',
-                  borderRadius: 8,
+                  justifyContent: 'center',
+                  padding: '10px 24px',
+                  background: '#1C1C1C',
+                  color: '#FFFFFF',
+                  borderRadius: 10,
                   font: '500 14px/1 var(--font-dm-sans), sans-serif',
                   textDecoration: 'none',
-                  letterSpacing: '-0.1px',
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.08)',
-                  border: '1px solid rgba(0,0,0,0.5)',
-                  transition: 'opacity 150ms ease, box-shadow 150ms ease',
+                  border: 'none',
+                  transition: 'all 0.2s ease',
                   whiteSpace: 'nowrap',
                 }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.opacity = '0.88'
-                  e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.4), 0 6px 16px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.08)'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.opacity = '1'
-                  e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.08)'
-                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = '#2C2C2C' }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = '#1C1C1C' }}
               >
                 Kostenlos starten
               </Link>
-            </>
+            </div>
           )}
         </div>
       </div>
@@ -226,16 +209,7 @@ function UserMenu({ name, email, image }: { name: string; email: string; image: 
             {email && <div style={{ marginTop: 2, font: '400 12px/1.3 var(--font-dm-sans), sans-serif', color: '#9a9a9a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{email}</div>}
           </div>
           <Link
-            href="/dashboard"
-            onClick={() => setOpen(false)}
-            style={{ display: 'block', padding: '9px 12px', borderRadius: 6, font: '500 13px/1 var(--font-dm-sans), sans-serif', color: '#0a0a0a', textDecoration: 'none' }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = '#f5f5f5' }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
-          >
-            Meine Deals
-          </Link>
-          <Link
-            href="/settings"
+            href="/dashboard/settings"
             onClick={() => setOpen(false)}
             style={{ display: 'block', padding: '9px 12px', borderRadius: 6, font: '500 13px/1 var(--font-dm-sans), sans-serif', color: '#0a0a0a', textDecoration: 'none' }}
             onMouseEnter={(e) => { e.currentTarget.style.background = '#f5f5f5' }}

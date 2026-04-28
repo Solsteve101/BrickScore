@@ -4,9 +4,9 @@ import FooterSection from '@/components/homepage/FooterSection'
 import PricingClient from '@/components/pricing/PricingClient'
 
 export const metadata: Metadata = {
-  title: 'Preise — BrickScore',
+  title: 'Preise — brickscore',
   description:
-    'Einfache, transparente Preise für BrickScore. Kostenlos starten mit 40 Tokens pro Woche, oder upgrade auf Pro und Business für mehr Analysen, kein Wasserzeichen und Team-Funktionen.',
+    'Kostenlos starten oder upgraden. Free, Pro und Business Pläne für Immobilien-Investoren. Ab €0/Monat.',
 }
 
 export default function PreisePage() {

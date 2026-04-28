@@ -29,7 +29,7 @@ const TIERS: Tier[] = [
     yearlyTotal: 0,
     yearlySavings: 0,
     features: [
-      { text: '40 Tokens pro Woche', included: true },
+      { text: '20 Tokens pro Woche', included: true },
       { text: '5 KPIs + Deal-Score', included: true },
       { text: 'Link-Import & Text-Analyse', included: true },
       { text: '10-Jahres-Projektion', included: true },
@@ -49,7 +49,7 @@ const TIERS: Tier[] = [
     yearlySavings: 24,
     features: [
       { text: 'Alles aus Free', included: true },
-      { text: '400 Tokens pro Woche', included: true },
+      { text: '200 Tokens pro Woche', included: true },
       { text: 'Kein Wasserzeichen', included: true },
       { text: 'Priority-Support', included: true },
     ],
@@ -65,7 +65,7 @@ const TIERS: Tier[] = [
     yearlySavings: 72,
     features: [
       { text: 'Alles aus Pro', included: true },
-      { text: 'Unbegrenzte Tokens', included: true },
+      { text: '600 Tokens pro Woche', included: true },
       { text: 'White Label Exporte', included: true },
       { text: 'Eigenes Logo im PDF', included: true },
       { text: 'Team-Zugang', included: true },
@@ -78,7 +78,7 @@ const TIERS: Tier[] = [
 const FAQ: { q: string; a: string }[] = [
   {
     q: 'Was sind Tokens?',
-    a: 'Tokens sind dein Analyse-Guthaben. Eine Link-Analyse kostet 5 Tokens, ein manueller Deal 1 Token. Im Free-Plan bekommst du jede Woche 40 neue Tokens.',
+    a: 'Tokens sind dein Analyse-Guthaben. Eine Link-Analyse kostet 5 Tokens, ein manueller Deal 1 Token. Im Free-Plan bekommst du jede Woche 20 neue Tokens.',
   },
   {
     q: 'Kann ich jederzeit kündigen?',
@@ -86,7 +86,7 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: 'Gibt es eine Testphase?',
-    a: 'Der Free-Plan ist dauerhaft kostenlos. Du kannst BrickScore unbegrenzt mit 40 Tokens pro Woche nutzen.',
+    a: 'Der Free-Plan ist dauerhaft kostenlos. Du kannst BrickScore unbegrenzt mit 20 Tokens pro Woche nutzen.',
   },
   {
     q: 'Welche Zahlungsmethoden gibt es?',
@@ -311,19 +311,21 @@ function TierCard({ tier, cycle }: { tier: Tier; cycle: Cycle }) {
         style={{
           marginTop: 'auto',
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-          width: '100%', padding: '13px 16px',
+          width: '100%', padding: '10px 24px',
           borderRadius: 10,
-          background: tier.highlight
-            ? 'linear-gradient(to bottom, #3d3d3d, #141414)'
-            : '#ffffff',
-          color: tier.highlight ? '#ffffff' : '#0a0a0a',
-          border: tier.highlight ? '1px solid rgba(0,0,0,0.5)' : '1px solid #d8d8d8',
-          font: '500 14.5px/1 var(--font-dm-sans), sans-serif', letterSpacing: '-0.1px',
+          background: tier.highlight ? '#1C1C1C' : '#FFFFFF',
+          color: tier.highlight ? '#FFFFFF' : '#1C1C1C',
+          border: tier.highlight ? 'none' : '1px solid #D6D6D4',
+          font: '500 14px/1 var(--font-dm-sans), sans-serif',
           textDecoration: 'none',
-          boxShadow: tier.highlight
-            ? '0 1px 2px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.08)'
-            : '0 1px 2px rgba(0,0,0,0.04)',
-          transition: 'opacity 150ms ease, box-shadow 150ms ease, border-color 150ms ease, background 150ms ease',
+          transition: 'all 0.2s ease',
+          whiteSpace: 'nowrap',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = tier.highlight ? '#2C2C2C' : '#F5F5F3'
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = tier.highlight ? '#1C1C1C' : '#FFFFFF'
         }}
       >
         {tier.ctaLabel}

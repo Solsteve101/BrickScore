@@ -2,7 +2,7 @@ export function fmtEurDe(n: number, opts: { sign?: boolean } = {}): string {
   if (!isFinite(n)) return '–'
   const sign = opts.sign && n > 0 ? '+' : n < 0 ? '−' : ''
   const abs = Math.abs(Math.round(n))
-  return `${sign}${abs.toLocaleString('de-DE')} EUR`
+  return `${sign}${abs.toLocaleString('de-DE')} €`
 }
 
 export function fmtPctDe(n: number, d = 1): string {

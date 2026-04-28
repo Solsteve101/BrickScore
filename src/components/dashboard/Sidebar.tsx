@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { signOut, useSession } from 'next-auth/react'
 import { getUsage, type UsagePlan } from '@/lib/usage-store'
+import { BrickScoreLogo } from '@/components/ui/brickscore-logo'
 
 interface NavItem {
   key: string
@@ -112,11 +113,8 @@ export default function Sidebar() {
     }}>
       {/* Brand */}
       <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '4px 8px 18px', textDecoration: 'none' }}>
-        <svg viewBox="0 0 120 100" width={20} height={17} aria-hidden="true">
-          <path d="M60,52 L28,84 L28,70 L60,38 L92,70 L92,84 Z" fill="#0a0a0a" />
-          <path d="M52,32 L60,24 L100,24 L92,32 Z" fill="#0a0a0a" />
-        </svg>
-        <span style={{ font: '500 18px/1 var(--font-dm-sans), sans-serif', color: '#0a0a0a', letterSpacing: '-0.4px' }}>brickscore</span>
+        <BrickScoreLogo height={13} style={{ display: 'block', flexShrink: 0, position: 'relative', top: -1, verticalAlign: 'middle' }} />
+        <span style={{ font: '600 17px/1 var(--font-dm-sans), sans-serif', color: '#0a0a0a', letterSpacing: '-0.4px' }}>brickscore</span>
       </Link>
 
       <nav style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>

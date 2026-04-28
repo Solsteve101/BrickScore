@@ -4,11 +4,11 @@ import { useSession } from 'next-auth/react'
 
 /**
  * Returns the right destination for landing-page CTAs:
- * authenticated → /dashboard, otherwise → /login with callbackUrl=/dashboard.
+ * authenticated → /dashboard/new, otherwise → /login with callbackUrl=/dashboard/new.
  * While the session is still loading we optimistically point to /login —
- * the login page itself bounces a logged-in user straight to /dashboard.
+ * the login page itself bounces a logged-in user straight to /dashboard/new.
  */
 export function useDashboardHref(): string {
   const { status } = useSession()
-  return status === 'authenticated' ? '/dashboard' : '/login?callbackUrl=/dashboard'
+  return status === 'authenticated' ? '/dashboard/new' : '/login?callbackUrl=/dashboard/new'
 }

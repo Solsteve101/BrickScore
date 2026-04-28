@@ -23,7 +23,7 @@ import { CITIES, normCity } from '@/lib/cities-data'
 import { useListingAnalysis, type ListingData } from '@/hooks/useListingAnalysis'
 import SaveDealModal from './SaveDealModal'
 import ExportDealModal, { type ExportFormat } from './ExportDealModal'
-import { saveDeal as persistDeal, buildKpis, findDealById, type SavedDeal } from '@/lib/deals-store'
+import { saveDeal as persistDeal, updateDeal, buildKpis, findDealById, type SavedDeal } from '@/lib/deals-store'
 import { runExport } from '@/lib/exporters/run-export'
 import { hasTokens, spendTokens } from '@/lib/usage-store'
 import { pushToast } from '@/lib/toast'
@@ -1286,6 +1286,7 @@ export default function Calculator() {
   }, [])
 
   const [saveOpen, setSaveOpen] = useState(false)
+  const [updateChoiceOpen, setUpdateChoiceOpen] = useState(false)
   const [exportOpen, setExportOpen] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [lastSavedTitle, setLastSavedTitle] = useState<string>('')
@@ -1293,8 +1294,37 @@ export default function Calculator() {
   const [unsavedExportPrompt, setUnsavedExportPrompt] = useState<ExportFormat | null>(null)
   const [pendingExportAfterSave, setPendingExportAfterSave] = useState<ExportFormat | null>(null)
 
-  const onSave = () => setSaveOpen(true)
+  const onSave = () => {
+    if (currentDealId) {
+      // Loaded from "Meine Deals" — give the user the choice to overwrite or save as new.
+      setUpdateChoiceOpen(true)
+    } else {
+      setSaveOpen(true)
+    }
+  }
   const onExport = () => setExportOpen(true)
+
+  const handleUpdateExisting = useCallback(() => {
+    if (!currentDealId) return
+    const updated = updateDeal(currentDealId, {
+      datum: new Date().toISOString(),
+      inputs,
+      kpis: buildKpis(r, score),
+    })
+    setUpdateChoiceOpen(false)
+    if (!updated) {
+      pushToast({ variant: 'error', message: 'Deal konnte nicht aktualisiert werden.' })
+      return
+    }
+    setLastSavedTitle(updated.titel)
+    showToast('✓ Deal aktualisiert')
+    pushToast({ variant: 'success', message: 'Deal aktualisiert!' })
+  }, [currentDealId, inputs, r, score])
+
+  const openSaveAsNew = useCallback(() => {
+    setUpdateChoiceOpen(false)
+    setSaveOpen(true)
+  }, [])
 
   const runCalculatorExport = useCallback(async (format: ExportFormat, dealId: string | null) => {
     const titleForFile = lastSavedTitle || (inputs.city ? `Immobilie ${inputs.city}` : 'BrickScore_Deal')
@@ -1331,7 +1361,7 @@ export default function Calculator() {
     setCurrentDealId(deal.id)
     setSaveOpen(false)
     showToast('✓ Deal gespeichert')
-    pushToast({ variant: 'success', message: 'Deal erfolgreich gespeichert.' })
+    pushToast({ variant: 'success', message: 'Deal gespeichert!' })
 
     // If a "save & export" flow was queued, kick off the export now
     if (pendingExportAfterSave) {
@@ -1399,6 +1429,53 @@ export default function Calculator() {
         defaultLink={inputs.listingUrl}
         onSave={handleSaveDeal}
       />
+
+      {/* Update vs new-save choice (only when an existing deal is loaded) */}
+      {updateChoiceOpen && (
+        <div
+          onMouseDown={(e) => { if (e.target === e.currentTarget) setUpdateChoiceOpen(false) }}
+          style={{ position: 'fixed', inset: 0, zIndex: 110, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+        >
+          <div style={{
+            width: '100%', maxWidth: 460,
+            background: '#ffffff', borderRadius: 12,
+            padding: '22px 24px 20px',
+            boxShadow: '0 24px 48px rgba(0,0,0,0.25)',
+            display: 'flex', flexDirection: 'column', gap: 14,
+          }}>
+            <h3 style={{ margin: 0, font: '600 17px/1.3 var(--font-dm-sans), sans-serif', color: '#0a0a0a' }}>
+              Deal speichern
+            </h3>
+            <p style={{ margin: 0, font: '400 13.5px/1.5 var(--font-dm-sans), sans-serif', color: '#6a6a6a' }}>
+              Du bearbeitest{lastSavedTitle ? ` "${lastSavedTitle}"` : ' einen gespeicherten Deal'}. Möchtest du den bestehenden Deal aktualisieren oder als neuen Deal speichern?
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={openSaveAsNew}
+                style={{ padding: '9px 16px', borderRadius: 8, background: '#ffffff', border: '1px solid #d8d8d8', font: '500 13px/1 var(--font-dm-sans), sans-serif', color: '#0a0a0a', cursor: 'pointer' }}
+              >
+                Als neuen Deal speichern
+              </button>
+              <button
+                type="button"
+                onClick={handleUpdateExisting}
+                style={{
+                  padding: '9px 16px', borderRadius: 8,
+                  background: 'linear-gradient(to bottom, #3d3d3d, #141414)',
+                  border: '1px solid rgba(0,0,0,0.5)',
+                  font: '500 13px/1 var(--font-dm-sans), sans-serif', color: '#ffffff',
+                  cursor: 'pointer',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.3), 0 4px 12px rgba(0,0,0,0.18)',
+                }}
+              >
+                Deal aktualisieren
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <ExportDealModal
         open={exportOpen}
         onClose={() => { if (!exporting) setExportOpen(false) }}
@@ -1700,23 +1777,16 @@ export default function Calculator() {
               onClick={onSave}
               style={{
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 9,
-                width: '100%', padding: '14px 20px',
-                background: 'linear-gradient(to bottom, #3d3d3d, #141414)',
-                color: '#ffffff', borderRadius: 10,
-                border: '1px solid rgba(0,0,0,0.5)',
-                font: '500 15px/1 var(--font-dm-sans), sans-serif', letterSpacing: '-0.1px',
+                width: '100%', padding: '10px 24px',
+                background: '#1C1C1C',
+                color: '#FFFFFF', borderRadius: 10,
+                border: 'none',
+                font: '500 14px/1 var(--font-dm-sans), Inter, sans-serif',
                 cursor: 'pointer',
-                boxShadow: '0 1px 2px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.08)',
-                transition: 'opacity 150ms ease, box-shadow 150ms ease',
+                transition: 'all 0.2s ease',
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.opacity = '0.9'
-                e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.4), 0 6px 16px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.08)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.opacity = '1'
-                e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.08)'
-              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = '#2C2C2C' }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = '#1C1C1C' }}
             >
               <VIcon name="bookmark" size={16} />
               Deal speichern
@@ -1725,23 +1795,16 @@ export default function Calculator() {
               onClick={onExport}
               style={{
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 9,
-                width: '100%', padding: '14px 20px',
-                background: 'linear-gradient(to bottom, #3d3d3d, #141414)',
-                color: '#ffffff', borderRadius: 10,
-                border: '1px solid rgba(0,0,0,0.5)',
-                font: '500 15px/1 var(--font-dm-sans), sans-serif', letterSpacing: '-0.1px',
+                width: '100%', padding: '10px 24px',
+                background: '#1C1C1C',
+                color: '#FFFFFF', borderRadius: 10,
+                border: 'none',
+                font: '500 14px/1 var(--font-dm-sans), Inter, sans-serif',
                 cursor: 'pointer',
-                boxShadow: '0 1px 2px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.08)',
-                transition: 'opacity 150ms ease, box-shadow 150ms ease',
+                transition: 'all 0.2s ease',
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.opacity = '0.9'
-                e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.4), 0 6px 16px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.08)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.opacity = '1'
-                e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.08)'
-              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = '#2C2C2C' }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = '#1C1C1C' }}
             >
               <VIcon name="download" size={16} />
               Deal exportieren

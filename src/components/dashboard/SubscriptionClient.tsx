@@ -10,6 +10,8 @@ type Cycle = 'monthly' | 'yearly'
 
 type PlanKey = 'pro' | 'business'
 
+const PLAN_RANK: Record<UsagePlan, number> = { free: 0, pro: 1, business: 2 }
+
 const PRICE_IDS: Record<PlanKey, Record<Cycle, string | undefined>> = {
   pro: {
     monthly: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO_MONTHLY,
@@ -46,7 +48,7 @@ export default function SubscriptionClient() {
   const [plan, setPlan] = useState<UsagePlan>('free')
   const [planInterval, setPlanInterval] = useState<BillingInterval | null>(null)
   const [tokensRemaining, setTokensRemaining] = useState(0)
-  const [tokensMax, setTokensMax] = useState(40)
+  const [tokensMax, setTokensMax] = useState(20)
   const [copied, setCopied] = useState<'code' | 'url' | null>(null)
   const [cycle, setCycle] = useState<Cycle>('monthly')
   const [busyPlan, setBusyPlan] = useState<PlanKey | null>(null)
@@ -113,8 +115,11 @@ export default function SubscriptionClient() {
 
   const startCheckout = async (key: PlanKey) => {
     if (busyPlan) return
-    // Block only when both plan AND interval already match.
-    if (plan === key && planInterval === cycle) return
+    // Block downgrades and exact-match (same plan + same interval).
+    const userRank = PLAN_RANK[plan]
+    const targetRank = PLAN_RANK[key]
+    if (userRank > targetRank) return
+    if (userRank === targetRank && planInterval === cycle) return
     const priceId = PRICE_IDS[key][cycle]
     if (!priceId) {
       pushToast({ variant: 'error', message: `Preis-ID für ${key} (${cycle}) ist nicht konfiguriert.` })
@@ -190,11 +195,14 @@ export default function SubscriptionClient() {
             type="button"
             disabled
             style={{
-              padding: '9px 16px', borderRadius: 9,
-              background: '#ffffff', color: '#7a7a7a',
-              border: '1px solid #d8d8d8',
-              font: '500 13px/1 var(--font-dm-sans), sans-serif',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              padding: '10px 24px', borderRadius: 10,
+              background: '#FFFFFF', color: '#1C1C1C',
+              border: '1px solid #D6D6D4',
+              font: '500 14px/1 var(--font-dm-sans), sans-serif',
               cursor: 'not-allowed',
+              opacity: 0.5,
+              transition: 'all 0.2s ease',
             }}
           >
             Abo verwalten
@@ -203,27 +211,19 @@ export default function SubscriptionClient() {
 
         <p style={{ margin: 0, font: '400 13.5px/1.5 var(--font-dm-sans), sans-serif', color: '#6a6a6a' }}>
           {plan === 'pro'
-            ? '400 Tokens pro Woche. Exporte ohne Wasserzeichen.'
+            ? '200 Tokens pro Woche. Exporte ohne Wasserzeichen.'
             : plan === 'business'
-              ? 'Unbegrenzte Tokens. White Label Exporte.'
-              : '40 Tokens pro Woche. Exporte mit Wasserzeichen.'}
+              ? '600 Tokens pro Woche. White Label Exporte.'
+              : '20 Tokens pro Woche. Exporte mit Wasserzeichen.'}
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, opacity: usageLoaded ? 1 : 0, transition: 'opacity 200ms ease' }}>
-          {plan === 'business' ? (
-            <span style={{ font: '500 12px/1 var(--font-dm-sans), sans-serif', color: '#7a7a7a' }}>
-              {used} Tokens diese Woche verbraucht · <span style={{ color: '#0a0a0a' }}>Unbegrenzt</span>
-            </span>
-          ) : (
-            <>
-              <span style={{ font: '500 12px/1 var(--font-dm-sans), sans-serif', color: '#7a7a7a' }}>
-                {used} / {tokensMax} Tokens diese Woche verbraucht
-              </span>
-              <div style={{ height: 8, borderRadius: 9999, background: '#f1f0ec', overflow: 'hidden' }}>
-                <div style={{ width: `${pct}%`, height: '100%', background: '#0a0a0a', borderRadius: 9999, transition: 'width 280ms ease' }} />
-              </div>
-            </>
-          )}
+          <span style={{ font: '500 12px/1 var(--font-dm-sans), sans-serif', color: '#7a7a7a' }}>
+            {used} / {tokensMax} Tokens diese Woche verbraucht
+          </span>
+          <div style={{ height: 8, borderRadius: 9999, background: '#f1f0ec', overflow: 'hidden' }}>
+            <div style={{ width: `${pct}%`, height: '100%', background: '#0a0a0a', borderRadius: 9999, transition: 'width 280ms ease' }} />
+          </div>
         </div>
       </section>
 
@@ -250,12 +250,12 @@ export default function SubscriptionClient() {
           cycle={cycle}
           tagline="Für aktive Investoren"
           features={[
-            '400 Tokens pro Woche',
+            '200 Tokens pro Woche',
             'Kein Wasserzeichen',
             'Priority-Support',
           ]}
-          isCurrent={plan === 'pro'}
-          currentInterval={plan === 'pro' ? planInterval : null}
+          currentPlan={plan}
+          currentInterval={planInterval}
           busy={busyPlan === 'pro'}
           onUpgrade={() => { void startCheckout('pro') }}
         />
@@ -266,15 +266,15 @@ export default function SubscriptionClient() {
           cycle={cycle}
           tagline="Für Teams und Profis"
           features={[
-            'Unbegrenzte Tokens',
+            '600 Tokens pro Woche',
             'White Label Exporte (kein BrickScore-Branding)',
             'Eigenes Logo im PDF-Export',
             'Team-Zugang (bis zu 5 Mitglieder)',
             'API-Zugriff',
             'Dedicated Support',
           ]}
-          isCurrent={plan === 'business'}
-          currentInterval={plan === 'business' ? planInterval : null}
+          currentPlan={plan}
+          currentInterval={planInterval}
           busy={busyPlan === 'business'}
           onUpgrade={() => { void startCheckout('business') }}
         />
@@ -358,8 +358,44 @@ function CycleBtn({ active, onClick, children }: { active: boolean; onClick: () 
   )
 }
 
+function planButtonStyle(
+  variant: 'current' | 'included' | 'gold' | 'neutral-active' | 'black',
+  busy: boolean,
+  disabled: boolean,
+): React.CSSProperties {
+  const base: React.CSSProperties = {
+    marginTop: 'auto', width: '100%',
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+    padding: '10px 24px', borderRadius: 10,
+    font: '500 14px/1 var(--font-dm-sans), Inter, sans-serif',
+    cursor: disabled ? 'not-allowed' : 'pointer',
+    opacity: busy ? 0.85 : 1,
+    transition: 'all 0.2s ease',
+    whiteSpace: 'nowrap',
+  }
+  if (variant === 'current' || variant === 'included') {
+    return {
+      ...base,
+      background: '#FFFFFF',
+      color: '#1C1C1C',
+      border: '1px solid #D6D6D4',
+      opacity: 0.5,
+      boxShadow: 'none',
+    }
+  }
+  // gold, neutral-active, black all share the same active black style
+  return {
+    ...base,
+    background: '#1C1C1C',
+    color: '#FFFFFF',
+    border: 'none',
+    boxShadow: 'none',
+    cursor: busy ? 'wait' : 'pointer',
+  }
+}
+
 function PlanCard({
-  name, planKey: _planKey, price, cycle, tagline, features, isCurrent, currentInterval, busy, onUpgrade,
+  name, planKey, price, cycle, tagline, features, currentPlan, currentInterval, busy, onUpgrade,
 }: {
   name: string
   planKey: PlanKey
@@ -367,19 +403,40 @@ function PlanCard({
   cycle: Cycle
   tagline: string
   features: string[]
-  isCurrent: boolean
+  currentPlan: UsagePlan
   currentInterval: BillingInterval | null
   busy: boolean
   onUpgrade: () => void
 }) {
-  const exactMatch = isCurrent && currentInterval === cycle
-  const otherCycle = isCurrent && currentInterval && currentInterval !== cycle
-  const disabled = exactMatch || busy
-  const buttonLabel = exactMatch
-    ? 'Aktueller Plan'
-    : otherCycle
-      ? (cycle === 'yearly' ? 'Auf Jährlich wechseln' : 'Auf Monatlich wechseln')
-      : busy ? 'Weiterleiten…' : `Upgrade auf ${name}`
+  const cardRank = PLAN_RANK[planKey]
+  const userRank = PLAN_RANK[currentPlan]
+  const isPlanCurrent = userRank === cardRank
+  const isIncluded = userRank > cardRank
+  const exactMatch = isPlanCurrent && currentInterval === cycle
+  const switchToYearly = isPlanCurrent && currentInterval === 'monthly' && cycle === 'yearly'
+  const switchToMonthly = isPlanCurrent && currentInterval === 'yearly' && cycle === 'monthly'
+
+  type Variant = 'current' | 'included' | 'gold' | 'neutral-active' | 'black'
+  let variant: Variant
+  let buttonLabel: string
+  if (exactMatch) {
+    variant = 'current'
+    buttonLabel = 'Aktueller Plan'
+  } else if (isIncluded) {
+    variant = 'included'
+    buttonLabel = 'Inkludiert'
+  } else if (switchToYearly) {
+    variant = 'gold'
+    buttonLabel = busy ? 'Weiterleiten…' : 'Auf Jährlich wechseln'
+  } else if (switchToMonthly) {
+    variant = 'neutral-active'
+    buttonLabel = busy ? 'Weiterleiten…' : 'Auf Monatlich wechseln'
+  } else {
+    variant = 'black'
+    buttonLabel = busy ? 'Weiterleiten…' : `Upgrade auf ${name}`
+  }
+  const passive = variant === 'current' || variant === 'included'
+  const disabled = passive || busy
   return (
     <div style={{
       padding: '24px 24px 22px', borderRadius: 14,
@@ -433,18 +490,7 @@ function PlanCard({
         onClick={disabled ? undefined : onUpgrade}
         disabled={disabled}
         title={buttonLabel}
-        style={{
-          marginTop: 'auto', width: '100%',
-          padding: '12px 16px', borderRadius: 10,
-          background: exactMatch ? '#ffffff' : 'linear-gradient(to bottom, #3d3d3d, #141414)',
-          color: exactMatch ? '#3a3a3a' : '#ffffff',
-          border: exactMatch ? '1px solid #d8d8d8' : '1px solid rgba(0,0,0,0.5)',
-          font: '500 13.5px/1 var(--font-dm-sans), sans-serif',
-          cursor: disabled ? (exactMatch ? 'default' : 'wait') : 'pointer',
-          opacity: busy ? 0.85 : 1,
-          boxShadow: exactMatch ? 'none' : '0 1px 2px rgba(0,0,0,0.3), 0 4px 12px rgba(0,0,0,0.18)',
-          transition: 'opacity 150ms ease',
-        }}
+        style={planButtonStyle(variant, busy, disabled)}
       >
         {buttonLabel}
       </button>
@@ -476,14 +522,17 @@ function CopyRow({ label, value, copied, onCopy, mono }: { label: string; value:
           type="button"
           onClick={onCopy}
           style={{
-            padding: '7px 12px', borderRadius: 7,
-            background: copied ? 'rgba(31,138,101,0.12)' : '#0a0a0a',
-            color: copied ? '#1a6a45' : '#ffffff',
-            border: copied ? '1px solid rgba(31,138,101,0.3)' : '1px solid #0a0a0a',
-            font: '500 12px/1 var(--font-dm-sans), sans-serif',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            padding: '8px 16px', borderRadius: 10,
+            background: copied ? 'rgba(31,138,101,0.12)' : '#1C1C1C',
+            color: copied ? '#1a6a45' : '#FFFFFF',
+            border: copied ? '1px solid rgba(31,138,101,0.3)' : 'none',
+            font: '500 14px/1 var(--font-dm-sans), sans-serif',
             cursor: 'pointer', whiteSpace: 'nowrap',
-            transition: 'background 130ms ease, color 130ms ease',
+            transition: 'all 0.2s ease',
           }}
+          onMouseEnter={(e) => { if (!copied) e.currentTarget.style.background = '#2C2C2C' }}
+          onMouseLeave={(e) => { if (!copied) e.currentTarget.style.background = '#1C1C1C' }}
         >
           {copied ? 'Kopiert' : 'Kopieren'}
         </button>

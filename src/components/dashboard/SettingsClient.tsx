@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, type ReactNode } from 'react'
+import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { signOut, useSession } from 'next-auth/react'
 import { pushToast } from '@/lib/toast'
@@ -46,7 +47,7 @@ export default function SettingsClient() {
   const { data: session, update } = useSession()
   const user = session?.user
   const isGoogle = user?.provider === 'google'
-  const [open, setOpen] = useState<SectionKey | null>('profile')
+  const [open, setOpen] = useState<SectionKey | null>(null)
 
   useEffect(() => {
     const e = params.get('email')
@@ -100,9 +101,24 @@ export default function SettingsClient() {
                   {s.key === 'profile' && <ProfileSection user={user ?? null} update={update} />}
                   {s.key === 'password' && <PasswordSection isGoogle={isGoogle} />}
                   {s.key === 'notifications' && <NotificationsSection />}
-                  {s.key === 'imprint' && <PlaceholderSection text="Wird vor Launch ergänzt." />}
-                  {s.key === 'privacy' && <PlaceholderSection text="Wird vor Launch ergänzt." />}
-                  {s.key === 'terms' && <PlaceholderSection text="Wird vor Launch ergänzt." />}
+                  {s.key === 'imprint' && (
+                    <LegalLinkSection
+                      text="Anbieterkennzeichnung gemäß § 5 DDG."
+                      href="/impressum"
+                    />
+                  )}
+                  {s.key === 'privacy' && (
+                    <LegalLinkSection
+                      text="Hinweise zur Verarbeitung personenbezogener Daten und zu deinen Rechten nach DSGVO."
+                      href="/datenschutz"
+                    />
+                  )}
+                  {s.key === 'terms' && (
+                    <LegalLinkSection
+                      text="Allgemeine Geschäftsbedingungen für die Nutzung von BrickScore."
+                      href="/agb"
+                    />
+                  )}
                   {s.key === 'delete' && <DeleteSection onConfirmed={async () => {
                     try { ['brickscore_deals_v1', 'brickscore_exports', 'brickscore_usage'].forEach((k) => window.localStorage.removeItem(k)) } catch { /* ignore */ }
                     await signOut({ redirect: false })
@@ -236,7 +252,7 @@ function ProfileSection({ user, update: _update }: { user: ReturnType<typeof use
                 type="button"
                 onClick={() => { if (!busy) setPwModalOpen(false) }}
                 disabled={busy}
-                style={{ padding: '9px 16px', borderRadius: 8, background: 'transparent', border: '1px solid #d8d8d8', font: '500 13px/1 var(--font-dm-sans), sans-serif', color: '#0a0a0a', cursor: busy ? 'default' : 'pointer' }}
+                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '8px 16px', borderRadius: 10, background: '#FFFFFF', border: '1px solid #D6D6D4', font: '500 14px/1 var(--font-dm-sans), Inter, sans-serif', color: '#1C1C1C', cursor: busy ? 'not-allowed' : 'pointer', transition: 'all 0.2s ease' }}
               >
                 Abbrechen
               </button>
@@ -245,14 +261,15 @@ function ProfileSection({ user, update: _update }: { user: ReturnType<typeof use
                 onClick={() => { void submitEmailChange() }}
                 disabled={busy || pwInput.length === 0}
                 style={{
-                  padding: '9px 16px', borderRadius: 8,
-                  background: 'linear-gradient(to bottom, #3d3d3d, #141414)',
-                  border: '1px solid rgba(0,0,0,0.5)',
-                  font: '500 13px/1 var(--font-dm-sans), sans-serif',
-                  color: '#ffffff',
-                  cursor: busy ? 'default' : 'pointer',
-                  opacity: busy || pwInput.length === 0 ? 0.7 : 1,
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.3), 0 4px 12px rgba(0,0,0,0.18)',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  padding: '8px 16px', borderRadius: 10,
+                  background: '#1C1C1C',
+                  border: 'none',
+                  font: '500 14px/1 var(--font-dm-sans), Inter, sans-serif',
+                  color: '#FFFFFF',
+                  cursor: busy ? 'not-allowed' : 'pointer',
+                  opacity: busy || pwInput.length === 0 ? 0.5 : 1,
+                  transition: 'all 0.2s ease',
                 }}
               >
                 {busy ? 'Senden…' : 'Bestätigen'}
@@ -383,6 +400,32 @@ function PlaceholderSection({ text }: { text: string }) {
   )
 }
 
+function LegalLinkSection({ text, href }: { text: string; href: string }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <p style={{ margin: 0, font: '400 13.5px/1.5 var(--font-dm-sans), sans-serif', color: '#6a6a6a' }}>
+        {text}
+      </p>
+      <Link
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{
+          alignSelf: 'flex-start',
+          font: '500 13px/1 var(--font-dm-sans), sans-serif',
+          color: '#0a0a0a',
+          textDecoration: 'none',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 4,
+        }}
+      >
+        Vollständig ansehen <span aria-hidden="true">→</span>
+      </Link>
+    </div>
+  )
+}
+
 function DeleteSection({ onConfirmed }: { onConfirmed: () => Promise<void> }) {
   const [confirm, setConfirm] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -407,11 +450,14 @@ function DeleteSection({ onConfirmed }: { onConfirmed: () => Promise<void> }) {
         onClick={() => setConfirm(true)}
         style={{
           alignSelf: 'flex-start',
-          padding: '10px 16px', borderRadius: 9,
-          background: '#ffffff', color: '#cf2d56',
-          border: '1px solid #f0cdd6',
-          font: '500 13px/1 var(--font-dm-sans), sans-serif',
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          padding: '10px 24px', borderRadius: 10,
+          background: '#FFFFFF', color: '#DC2626',
+          border: '1px solid #D6D6D4',
+          font: '500 14px/1 var(--font-dm-sans), Inter, sans-serif',
           cursor: 'pointer',
+          transition: 'all 0.2s ease',
+          whiteSpace: 'nowrap',
         }}
       >
         Konto und alle Daten unwiderruflich löschen
@@ -428,10 +474,10 @@ function DeleteSection({ onConfirmed }: { onConfirmed: () => Promise<void> }) {
               Dein Konto, deine gespeicherten Deals und Exporte werden unwiderruflich entfernt.
             </p>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 4 }}>
-              <button type="button" onClick={() => setConfirm(false)} disabled={busy} style={{ padding: '9px 16px', borderRadius: 8, background: 'transparent', border: '1px solid #d8d8d8', font: '500 13px/1 var(--font-dm-sans), sans-serif', color: '#0a0a0a', cursor: busy ? 'default' : 'pointer' }}>
+              <button type="button" onClick={() => setConfirm(false)} disabled={busy} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '8px 16px', borderRadius: 10, background: '#FFFFFF', border: '1px solid #D6D6D4', font: '500 14px/1 var(--font-dm-sans), Inter, sans-serif', color: '#1C1C1C', cursor: busy ? 'not-allowed' : 'pointer', transition: 'all 0.2s ease' }}>
                 Abbrechen
               </button>
-              <button type="button" onClick={() => { void doDelete() }} disabled={busy} style={{ padding: '9px 16px', borderRadius: 8, background: '#cf2d56', border: '1px solid #b32348', font: '500 13px/1 var(--font-dm-sans), sans-serif', color: '#ffffff', cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.7 : 1 }}>
+              <button type="button" onClick={() => { void doDelete() }} disabled={busy} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '8px 16px', borderRadius: 10, background: '#DC2626', border: 'none', font: '500 14px/1 var(--font-dm-sans), Inter, sans-serif', color: '#FFFFFF', cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.5 : 1, transition: 'all 0.2s ease' }}>
                 {busy ? 'Lösche…' : 'Endgültig löschen'}
               </button>
             </div>
@@ -468,11 +514,13 @@ const hintStyle: React.CSSProperties = {
 }
 const primaryBtn = (busy: boolean): React.CSSProperties => ({
   alignSelf: 'flex-start',
-  padding: '10px 18px', borderRadius: 9,
-  background: 'linear-gradient(to bottom, #3d3d3d, #141414)',
-  color: '#ffffff', border: '1px solid rgba(0,0,0,0.5)',
-  font: '500 13.5px/1 var(--font-dm-sans), sans-serif',
-  cursor: busy ? 'default' : 'pointer',
+  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+  padding: '10px 24px', borderRadius: 10,
+  background: '#1C1C1C',
+  color: '#FFFFFF', border: 'none',
+  font: '500 14px/1 var(--font-dm-sans), Inter, sans-serif',
+  cursor: busy ? 'not-allowed' : 'pointer',
   opacity: busy ? 0.75 : 1,
-  boxShadow: '0 1px 2px rgba(0,0,0,0.3), 0 4px 12px rgba(0,0,0,0.18)',
+  transition: 'all 0.2s ease',
+  whiteSpace: 'nowrap',
 })

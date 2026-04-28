@@ -301,21 +301,27 @@ function EmptyState() {
 }
 
 const primaryBtn: React.CSSProperties = {
-  padding: '8px 14px', borderRadius: 8,
-  background: 'linear-gradient(to bottom, #3d3d3d, #141414)',
-  color: '#ffffff', border: '1px solid rgba(0,0,0,0.5)',
-  font: '500 12.5px/1 var(--font-dm-sans), sans-serif',
+  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+  padding: '8px 16px', borderRadius: 10,
+  background: '#1C1C1C',
+  color: '#FFFFFF', border: 'none',
+  font: '500 14px/1 var(--font-dm-sans), Inter, sans-serif',
   cursor: 'pointer', whiteSpace: 'nowrap',
+  transition: 'all 0.2s ease',
 }
 const outlineBtn: React.CSSProperties = {
-  padding: '8px 14px', borderRadius: 8,
-  background: '#ffffff', color: '#0a0a0a', border: '1px solid #d8d8d8',
-  font: '500 12.5px/1 var(--font-dm-sans), sans-serif',
+  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+  padding: '8px 16px', borderRadius: 10,
+  background: '#FFFFFF', color: '#1C1C1C', border: '1px solid #D6D6D4',
+  font: '500 14px/1 var(--font-dm-sans), Inter, sans-serif',
   cursor: 'pointer', whiteSpace: 'nowrap',
+  transition: 'all 0.2s ease',
 }
 const dangerOutlineBtn: React.CSSProperties = {
-  padding: '8px 14px', borderRadius: 8,
-  background: '#ffffff', color: '#cf2d56', border: '1px solid #f0cdd6',
-  font: '500 12.5px/1 var(--font-dm-sans), sans-serif',
+  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+  padding: '8px 16px', borderRadius: 10,
+  background: '#FFFFFF', color: '#DC2626', border: '1px solid #D6D6D4',
+  font: '500 14px/1 var(--font-dm-sans), Inter, sans-serif',
   cursor: 'pointer', whiteSpace: 'nowrap',
+  transition: 'all 0.2s ease',
 }

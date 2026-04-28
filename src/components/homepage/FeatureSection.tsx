@@ -83,25 +83,167 @@ function KpiMockup() {
 
 function DashboardMockup() {
   const deals = [
-    { city: 'Hamburg', price: '€ 389.000', rendite: '6,4%', score: 82, tag: 'Stark' },
-    { city: 'Berlin', price: '€ 425.000', rendite: '5,8%', score: 74, tag: 'Gut' },
-    { city: 'München', price: '€ 590.000', rendite: '4,1%', score: 58, tag: 'Schwach' },
+    {
+      title: 'Altbauwohnung Eimsbüttel',
+      loc: 'Hamburg · Hamburg',
+      price: '€389.000',
+      cashflow: '+€635/Mon',
+      saved: '15.04.2026',
+      score: 82,
+      img: 'https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?w=400&h=225&fit=crop',
+    },
+    {
+      title: '2-Zi ETW Kreuzberg',
+      loc: 'Berlin · Berlin',
+      price: '€425.000',
+      cashflow: '+€412/Mon',
+      saved: '12.04.2026',
+      score: 74,
+      img: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400&h=225&fit=crop',
+    },
+    {
+      title: 'Dachgeschoss Schwabing',
+      loc: 'München · Bayern',
+      price: '€590.000',
+      cashflow: '+€287/Mon',
+      saved: '08.04.2026',
+      score: 58,
+      img: 'https://images.unsplash.com/photo-1560448075-bb485b067938?w=400&h=225&fit=crop',
+    },
   ]
+  const scoreBg = (s: number) =>
+    s >= 70 ? 'rgba(31,138,101,0.85)' : s >= 40 ? 'rgba(192,133,50,0.85)' : 'rgba(207,45,86,0.85)'
+
   return (
-    <div style={{ background: '#f8f8f8', border: '1px solid #e5e5e5', borderRadius: 12, padding: 24 }}>
-      <div style={{ font: '500 12px/1 var(--font-dm-sans)', color: '#9a9a9a', marginBottom: 14, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-        Gespeicherte Deals · 3
+    <div
+      style={{
+        background: '#f8f8f8',
+        border: '1px solid #e5e5e5',
+        borderRadius: 12,
+        padding: 24,
+      }}
+    >
+      <div
+        style={{
+          font: '600 9px/1 var(--font-dm-sans), sans-serif',
+          color: '#6F6F6F',
+          textTransform: 'uppercase',
+          letterSpacing: '1px',
+          paddingBottom: 8,
+          borderBottom: '1px solid #E6E6E4',
+          marginBottom: 10,
+        }}
+      >
+        Meine Deals · 3
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
         {deals.map((d) => (
-          <div key={d.city} style={{ background: '#fff', border: '1px solid #eee', borderRadius: 8, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div>
-              <div style={{ font: '500 13px/1 var(--font-dm-sans)', color: '#0a0a0a', marginBottom: 4 }}>{d.city}</div>
-              <div style={{ font: '400 12px/1 var(--font-dm-sans)', color: '#9a9a9a' }}>{d.price}</div>
+          <div
+            key={d.title}
+            style={{
+              background: '#fff',
+              border: '1px solid #f0f0f0',
+              borderRadius: 10,
+              overflow: 'hidden',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            <div
+              style={{
+                position: 'relative',
+                height: 80,
+                background: `url(${d.img}) center/cover no-repeat`,
+              }}
+            >
+              <span
+                style={{
+                  position: 'absolute',
+                  top: 6,
+                  left: 6,
+                  padding: '2px 6px',
+                  borderRadius: 9999,
+                  background: scoreBg(d.score),
+                  color: '#fff',
+                  font: '600 8px/1 var(--font-dm-sans), sans-serif',
+                  letterSpacing: 0.1,
+                  backdropFilter: 'blur(4px)',
+                  WebkitBackdropFilter: 'blur(4px)',
+                }}
+              >
+                Score: {d.score}
+              </span>
             </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ font: '700 16px/1 var(--font-dm-sans)', color: '#1f8a65', letterSpacing: '-0.01em' }}>{d.rendite}</div>
-              <div style={{ font: '500 11px/1 var(--font-dm-sans)', color: '#b8921a', marginTop: 3 }}>Score {d.score}</div>
+
+            <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <div
+                style={{
+                  font: '600 11px/1.3 var(--font-dm-sans), sans-serif',
+                  color: '#1C1C1C',
+                  letterSpacing: '-0.1px',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {d.title}
+              </div>
+              <div
+                style={{
+                  font: '400 9px/1.3 var(--font-dm-sans), sans-serif',
+                  color: '#9CA3AF',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {d.loc}
+              </div>
+
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'baseline',
+                  gap: 6,
+                  marginTop: 4,
+                }}
+              >
+                <span
+                  style={{
+                    font: '700 13px/1 "JetBrains Mono", monospace',
+                    color: '#1C1C1C',
+                    fontVariantNumeric: 'tabular-nums',
+                    letterSpacing: '-0.3px',
+                  }}
+                >
+                  {d.price}
+                </span>
+                <span
+                  style={{
+                    font: '600 10px/1 "JetBrains Mono", monospace',
+                    color: '#1f8a65',
+                    fontVariantNumeric: 'tabular-nums',
+                  }}
+                >
+                  {d.cashflow}
+                </span>
+              </div>
+
+              <div
+                style={{
+                  marginTop: 3,
+                  font: '400 8px/1.3 var(--font-dm-sans), sans-serif',
+                  color: '#9CA3AF',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Gespeichert am {d.saved}
+              </div>
             </div>
           </div>
         ))}
@@ -181,6 +323,7 @@ export default function FeatureSection() {
 
       {/* Tab content */}
       <div
+        className="bs-feature-tab-grid"
         style={{
           padding: '72px 5%',
           display: 'grid',

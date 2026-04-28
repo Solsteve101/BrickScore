@@ -5,6 +5,7 @@ interface SendArgs {
   to: string
   subject: string
   html: string
+  replyTo?: string
 }
 
 interface ResendResponse {
@@ -13,26 +14,32 @@ interface ResendResponse {
   name?: string
 }
 
-export async function sendEmail({ to, subject, html }: SendArgs): Promise<{ ok: boolean; error?: string }> {
+export async function sendEmail({ to, subject, html, replyTo }: SendArgs): Promise<{ ok: boolean; error?: string }> {
   const apiKey = process.env.RESEND_API_KEY
   if (!apiKey) {
     return { ok: false, error: 'missing_resend_key' }
   }
   try {
+    const payload: Record<string, unknown> = { from: FROM, to, subject, html }
+    if (replyTo) payload.reply_to = replyTo
     const res = await fetch(RESEND_ENDPOINT, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ from: FROM, to, subject, html }),
+      body: JSON.stringify(payload),
     })
     const json = await res.json().catch(() => ({})) as ResendResponse
     if (!res.ok) {
+      // eslint-disable-next-line no-console
+      console.error('[resend] send failed', { status: res.status, body: json })
       return { ok: false, error: json.message ?? `resend_http_${res.status}` }
     }
     return { ok: true }
   } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error('[resend] network error', e)
     return { ok: false, error: e instanceof Error ? e.message : 'send_failed' }
   }
 }

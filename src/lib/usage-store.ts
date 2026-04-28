@@ -36,9 +36,9 @@ export const TOKEN_COST: Record<UsageAction, number> = {
 }
 
 const PLAN_MAX: Record<UsagePlan, number> = {
-  free: 40,
+  free: 20,
   pro: 200,
-  business: 1000,
+  business: 600,
 }
 
 const STORAGE_KEY = 'brickscore_usage'
@@ -96,15 +96,21 @@ function read(): UsageState {
     if (!raw) return defaultState()
     const p = JSON.parse(raw) as Partial<UsageState>
     const plan: UsagePlan = p.plan === 'pro' || p.plan === 'business' ? p.plan : 'free'
-    const max = typeof p.tokens_max === 'number' ? p.tokens_max : PLAN_MAX[plan]
-    const interval: BillingInterval | null = p.interval === 'monthly' || p.interval === 'yearly' ? p.interval : null
+    // Trust the canonical plan limit so existing users sync to the current PLAN_MAX
+    // when limits change. Clamp tokens_remaining into the new range.
+    const max = PLAN_MAX[plan]
+    const storedRemaining = typeof p.tokens_remaining === 'number' ? p.tokens_remaining : max
+    const tokensRemaining = Math.max(0, Math.min(storedRemaining, max))
+    const storedInterval: BillingInterval | null = p.interval === 'monthly' || p.interval === 'yearly' ? p.interval : null
+    // Legacy fallback: existing paid users without a stored interval default to 'monthly'
+    const interval: BillingInterval | null = plan === 'free' ? null : (storedInterval ?? 'monthly')
     return {
-      tokens_remaining: typeof p.tokens_remaining === 'number' ? p.tokens_remaining : max,
+      tokens_remaining: tokensRemaining,
       tokens_max: max,
       week_start: typeof p.week_start === 'string' ? p.week_start : mondayOf(new Date()),
       exports_count: typeof p.exports_count === 'number' ? p.exports_count : 0,
       plan,
-      interval: plan === 'free' ? null : interval,
+      interval,
       history: Array.isArray(p.history) ? p.history as UsageHistoryEntry[] : [],
     }
   } catch {

@@ -1,30 +1,56 @@
 'use client'
 
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { BrickScoreLogo } from '@/components/ui/brickscore-logo'
+
+interface FooterLink {
+  label: string
+  href: string
+}
+
 interface FooterCol {
   title: string
-  links: string[]
+  links: FooterLink[]
 }
 
 const FOOTER_COLS: FooterCol[] = [
   {
     title: 'Produkt',
-    links: ['Rendite Rechner', 'URL-Import', 'Deal Dashboard', 'Preise'],
+    links: [
+      { label: 'Dashboard', href: '/dashboard/new' },
+      { label: 'Meine Deals', href: '/dashboard' },
+      { label: 'Export', href: '/dashboard/exports' },
+      { label: 'Preise', href: '/preise' },
+    ],
   },
   {
     title: 'Firma',
-    links: ['Über uns', 'Kontakt', 'Karriere', 'Presse'],
-  },
-  {
-    title: 'Ressourcen',
-    links: ['Investoren-Blog', 'Kaufnebenkosten Guide', 'Nebenkosten-Tabelle', 'API'],
+    links: [
+      { label: 'Über uns', href: '/#about' },
+      { label: 'Kontakt', href: '/kontakt' },
+    ],
   },
   {
     title: 'Rechtliches',
-    links: ['Impressum', 'Datenschutz', 'AGB', 'Cookies'],
+    links: [
+      { label: 'Impressum', href: '/impressum' },
+      { label: 'Datenschutz', href: '/datenschutz' },
+      { label: 'AGB', href: '/agb' },
+    ],
   },
 ]
 
 export default function FooterSection() {
+  const pathname = usePathname()
+
+  const handleBrandClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (pathname === '/') {
+      e.preventDefault()
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }
+
   return (
     <footer
       style={{
@@ -34,9 +60,10 @@ export default function FooterSection() {
       }}
     >
       <div
+        className="bs-footer-grid"
         style={{
           display: 'grid',
-          gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr',
+          gridTemplateColumns: '2fr 1fr 1fr 1fr',
           gap: 48,
           paddingBottom: 56,
           borderBottom: '1px solid rgba(255,255,255,0.08)',
@@ -44,11 +71,18 @@ export default function FooterSection() {
       >
         {/* Brand column */}
         <div>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 16 }}>
-            <svg viewBox="0 0 120 100" width={20} height={16} aria-hidden="true" style={{ display: 'block' }}>
-              <path d="M60,52 L28,84 L28,70 L60,38 L92,70 L92,84 Z" fill="rgba(255,255,255,0.7)" />
-              <path d="M52,32 L60,24 L100,24 L92,32 Z" fill="rgba(255,255,255,0.7)" />
-            </svg>
+          <Link
+            href="/"
+            onClick={handleBrandClick}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              marginBottom: 16,
+              textDecoration: 'none',
+            }}
+          >
+            <BrickScoreLogo height={13} color="#FFFFFF" style={{ display: 'block', flexShrink: 0, opacity: 0.85, position: 'relative', top: -1, verticalAlign: 'middle' }} />
             <span
               style={{
                 font: '600 14px/1 var(--font-dm-sans), sans-serif',
@@ -58,7 +92,7 @@ export default function FooterSection() {
             >
               brickscore
             </span>
-          </div>
+          </Link>
           <p
             style={{
               margin: 0,
@@ -96,9 +130,9 @@ export default function FooterSection() {
               }}
             >
               {col.links.map((link) => (
-                <li key={link}>
+                <li key={link.label}>
                   <a
-                    href="#"
+                    href={link.href}
                     style={{
                       font: '400 13px/1 var(--font-dm-sans), sans-serif',
                       color: 'rgba(255,255,255,0.5)',
@@ -108,7 +142,7 @@ export default function FooterSection() {
                     onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.9)' }}
                     onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.5)' }}
                   >
-                    {link}
+                    {link.label}
                   </a>
                 </li>
               ))}
@@ -119,6 +153,7 @@ export default function FooterSection() {
 
       {/* Bottom bar */}
       <div
+        className="bs-footer-bottom"
         style={{
           marginTop: 32,
           display: 'flex',
@@ -129,9 +164,24 @@ export default function FooterSection() {
           color: 'rgba(255,255,255,0.25)',
         }}
       >
-        <span>© 2026 BrickScore · Made in Berlin</span>
+        <span>© 2026 brickscore · Made in Germany</span>
         <span>Alle Berechnungen sind Richtwerte und keine Anlageberatung.</span>
       </div>
+      <style>{`
+        @media (max-width: 768px) {
+          .bs-footer-grid {
+            grid-template-columns: 1fr !important;
+            gap: 32px !important;
+            padding-bottom: 40px !important;
+          }
+          .bs-footer-bottom {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 8px !important;
+            line-height: 1.5 !important;
+          }
+        }
+      `}</style>
     </footer>
   )
 }

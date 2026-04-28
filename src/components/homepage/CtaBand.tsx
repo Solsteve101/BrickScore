@@ -7,6 +7,7 @@ export default function CtaBand() {
   return (
     <section style={{ padding: '0 5% 0', background: '#fff' }}>
       <div
+        className="bs-cta-band"
         style={{
           position: 'relative',
           background: '#0f0f0f',
@@ -21,6 +22,15 @@ export default function CtaBand() {
           overflow: 'hidden',
         }}
       >
+        <style>{`
+          @media (max-width: 768px) {
+            .bs-cta-band {
+              padding: 72px 28px !important;
+              gap: 36px !important;
+              margin: 56px 0 56px !important;
+            }
+          }
+        `}</style>
         {/* Background depth effect */}
         <div
           style={{

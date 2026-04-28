@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <title>BrickScore OG Image</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 1200px; height: 630px;
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      background: #1C1C1C;
+      color: #FFFFFF;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .frame {
+      width: 1200px; height: 630px;
+      position: relative;
+      padding: 80px;
+      display: flex; flex-direction: column; justify-content: center;
+      background:
+        radial-gradient(circle at 85% 30%, rgba(255,255,255,0.05) 0%, transparent 45%),
+        radial-gradient(circle at 15% 95%, rgba(255,255,255,0.03) 0%, transparent 50%),
+        #1C1C1C;
+    }
+    .frame::before {
+      content: '';
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+      background-size: 60px 60px;
+      mask-image: radial-gradient(circle at 70% 50%, rgba(0,0,0,0.6), transparent 70%);
+      -webkit-mask-image: radial-gradient(circle at 70% 50%, rgba(0,0,0,0.6), transparent 70%);
+      pointer-events: none;
+    }
+
+    .left {
+      position: relative; z-index: 1;
+      display: flex; flex-direction: column; gap: 18px;
+      max-width: 720px;
+    }
+
+    .brand {
+      display: flex; align-items: center; gap: 16px;
+      margin-bottom: 14px;
+    }
+    .brand svg {
+      display: block;
+      filter: drop-shadow(0 1px 0 rgba(0,0,0,0.4));
+      transform: translateY(-3px);
+    }
+    .brand .word {
+      font-size: 48px;
+      font-weight: 600;
+      letter-spacing: -1.5px;
+      color: #FFFFFF;
+      line-height: 1;
+    }
+
+    .h1 {
+      font-size: 56px;
+      font-weight: 700;
+      letter-spacing: -1.6px;
+      line-height: 1.1;
+      color: #FFFFFF;
+      margin-top: 8px;
+    }
+    .h2 {
+      font-size: 24px;
+      font-weight: 500;
+      letter-spacing: -0.3px;
+      line-height: 1.4;
+      color: #9CA3AF;
+      margin-top: 6px;
+    }
+    .h3 {
+      font-size: 20px;
+      font-weight: 400;
+      letter-spacing: -0.2px;
+      line-height: 1.5;
+      color: #6F6F6F;
+      margin-top: 14px;
+    }
+
+    /* KPI cards on the right */
+    .kpis {
+      position: absolute;
+      right: 80px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex; flex-direction: column; gap: 14px;
+      z-index: 1;
+    }
+    .card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 14px;
+      padding: 18px 22px;
+      min-width: 270px;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+    }
+    .card.score {
+      background: linear-gradient(135deg, rgba(31,138,101,0.18), rgba(31,138,101,0.05));
+      border-color: rgba(31,138,101,0.30);
+    }
+    .card .label {
+      font-size: 11px;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      color: #9CA3AF;
+      font-weight: 500;
+    }
+    .card .value {
+      margin-top: 8px;
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -0.6px;
+      color: #FFFFFF;
+      font-feature-settings: 'tnum' 1;
+    }
+    .card .value.green { color: #36B884; }
+    .card .sub {
+      margin-top: 4px;
+      font-size: 13px;
+      color: #6F6F6F;
+      font-weight: 400;
+    }
+
+    .footer {
+      position: absolute;
+      left: 80px;
+      bottom: 36px;
+      font-size: 14px;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      color: #6F6F6F;
+      font-weight: 500;
+      z-index: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <div class="left">
+      <div class="brand">
+        <svg width="64" height="48" viewBox="0 0 332 249" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="0" y="172" width="57" height="76" fill="#FFFFFF"/>
+          <path d="M0 166.122V172.245L57.29 185L128 138.571L84.129 110L0 166.122Z" fill="#FFFFFF"/>
+          <path d="M1.5 56V111L84 56L277 184.5V248.5H332V166L84 0L1.5 56Z" fill="#FFFFFF"/>
+        </svg>
+        <span class="word">brickscore</span>
+      </div>
+
+      <h1 class="h1">Immobilien-Investment<br/>Analyse</h1>
+      <p class="h3">Cashflow, Rendite &amp; Deal-Score<br/>in 30 Sekunden.</p>
+    </div>
+
+    <div class="kpis">
+      <div class="card score">
+        <div class="label">Deal-Score</div>
+        <div class="value green">82 / 100</div>
+        <div class="sub">Solide Investition</div>
+      </div>
+      <div class="card">
+        <div class="label">Monats-Cashflow</div>
+        <div class="value green">+€635</div>
+        <div class="sub">netto, nach Tilgung</div>
+      </div>
+      <div class="card">
+        <div class="label">Netto-Mietrendite</div>
+        <div class="value">4,82 %</div>
+        <div class="sub">€389.000 — Hamburg</div>
+      </div>
+    </div>
+
+    <div class="footer">brickscore.de</div>
+  </div>
+</body>
+</html>

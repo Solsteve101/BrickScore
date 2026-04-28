@@ -139,7 +139,7 @@ export default function UsageClient() {
               Nächste Erneuerung am Montag.
             </span>
           </div>
-          <Link href="/dashboard/subscription" style={upgradeBtn}>Upgrade auf Pro — 400 Tokens/Woche</Link>
+          <Link href="/dashboard/subscription" style={upgradeBtn}>Upgrade auf Pro — 200 Tokens/Woche</Link>
         </div>
       ) : halfPlus ? (
         <div style={{

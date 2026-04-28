@@ -49,6 +49,18 @@ export function findDealById(id: string): SavedDeal | null {
   return loadDeals().find((d) => d.id === id) ?? null
 }
 
+/** Replace an existing deal in place, preserving id and original creation date. */
+export function updateDeal(id: string, patch: Partial<Omit<SavedDeal, 'id'>>): SavedDeal | null {
+  if (typeof window === 'undefined') return null
+  const all = loadDeals()
+  const idx = all.findIndex((d) => d.id === id)
+  if (idx < 0) return null
+  const merged: SavedDeal = { ...all[idx], ...patch, id }
+  all[idx] = merged
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(all))
+  return merged
+}
+
 export function deleteDeal(id: string): void {
   if (typeof window === 'undefined') return
   const all = loadDeals().filter((d) => d.id !== id)
