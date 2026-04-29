@@ -16,14 +16,14 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://brickscore.de'),
   title: 'brickscore — Immobilien-Investment Analyse',
   description:
-    'Immobilien-Inserat einfügen, Rendite berechnen. Cashflow, Netto-Rendite, Cash-on-Cash Return und Deal-Score in 30 Sekunden. Kostenlos starten.',
+    'Immobilien-Inserat einfügen, Rendite berechnen. Cashflow, Nettorendite, Cash-on-Cash Return und Deal Score in 30 Sekunden. Kostenlos starten.',
   keywords: [
     'Immobilien',
     'Investment',
     'Rendite',
     'Cashflow',
     'Analyse',
-    'Deal-Score',
+    'Deal Score',
     'Immobilien-Rechner',
     'Kapitalanlage',
   ],
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'brickscore — Immobilien-Investment Analyse',
     description:
-      'Immobilien-Inserat einfügen, Rendite berechnen. Cashflow, Netto-Rendite, Cash-on-Cash Return und Deal-Score in 30 Sekunden.',
+      'Immobilien-Inserat einfügen, Rendite berechnen. Cashflow, Nettorendite, Cash-on-Cash Return und Deal Score in 30 Sekunden.',
     url: 'https://brickscore.de',
     siteName: 'brickscore',
     images: [
@@ -52,7 +52,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'brickscore — Immobilien-Investment Analyse',
     description:
-      'Immobilien-Inserat einfügen, Rendite berechnen. Cashflow, Netto-Rendite, Cash-on-Cash Return und Deal-Score in 30 Sekunden.',
+      'Immobilien-Inserat einfügen, Rendite berechnen. Cashflow, Nettorendite, Cash-on-Cash Return und Deal Score in 30 Sekunden.',
     images: ['/og-image.png'],
   },
   robots: {

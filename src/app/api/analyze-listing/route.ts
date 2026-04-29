@@ -185,7 +185,7 @@ export async function POST(req: NextRequest) {
   // Require a valid kaufpreis — without it the calculator is useless
   if (!extracted.kaufpreis || extracted.kaufpreis <= 0) {
     return NextResponse.json(
-      { error: 'parse_failed', message: 'Kaufpreis konnte nicht ermittelt werden. Bitte Text manuell einfügen.' },
+      { error: 'parse_failed', message: 'Automatisches Auslesen nicht möglich.' },
       { status: 422 },
     )
   }

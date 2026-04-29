@@ -3,7 +3,7 @@ type CellValue = 'yes' | 'no' | 'partial'
 const ROWS: { feature: string; bs: CellValue; excel: CellValue; other: CellValue }[] = [
   { feature: 'URL-Import aus Immoportalen',                  bs: 'yes', excel: 'no',      other: 'no'      },
   { feature: 'Automatische Kaufnebenkosten nach Bundesland', bs: 'yes', excel: 'no',      other: 'partial' },
-  { feature: 'Deal-Score (0–100)',                           bs: 'yes', excel: 'no',      other: 'no'      },
+  { feature: 'Deal Score (0–100)',                           bs: 'yes', excel: 'no',      other: 'no'      },
   { feature: '5 KPIs sofort berechnet',                     bs: 'yes', excel: 'partial', other: 'partial' },
   { feature: 'Cashflow-Projektion (10+ Jahre)',              bs: 'yes', excel: 'partial', other: 'yes'     },
   { feature: 'Kostenlos nutzbar',                           bs: 'yes', excel: 'partial', other: 'no'      },

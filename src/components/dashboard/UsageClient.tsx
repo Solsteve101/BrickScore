@@ -184,17 +184,14 @@ export default function UsageClient() {
                     onMouseEnter={(e) => { if (!open) e.currentTarget.style.background = '#fafaf8' }}
                     onMouseLeave={(e) => { if (!open) e.currentTarget.style.background = 'transparent' }}
                   >
-                    <span className="bs-usage-icon" style={{ font: '500 16px/1 var(--font-dm-sans), sans-serif', flexShrink: 0, width: 22, textAlign: 'center' }} aria-hidden="true">
-                      {ACTION_ICONS[h.action]}
-                    </span>
                     <div className="bs-usage-label" style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
                       <span style={{ font: '500 13px/1.3 var(--font-dm-sans), sans-serif', color: '#0a0a0a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>
                         {actionLabel(h)}
                         {detail ? <span style={{ color: '#9a9a9a', fontWeight: 400 }}> — {detail}</span> : null}
                       </span>
                     </div>
-                    <span className="bs-usage-tokens" style={{ font: '500 13px/1 var(--font-jetbrains-mono), monospace', color: '#cf2d56', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-                      {h.tokens} {tokenLabel}
+                    <span className="bs-usage-tokens" style={{ font: '500 13px/1 var(--font-jetbrains-mono), monospace', color: '#6F6F6F', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                      {Math.abs(h.tokens)} {tokenLabel}
                     </span>
                     <span className="bs-usage-time" style={{ font: '400 11.5px/1 var(--font-dm-sans), sans-serif', color: '#9a9a9a', whiteSpace: 'nowrap', minWidth: 110, textAlign: 'right' }}>
                       {fmtTimestamp(h.date)}
@@ -203,16 +200,6 @@ export default function UsageClient() {
                       <path d="M2.5 4.5L6 8l3.5-3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   </button>
-                  {open && (
-                    <div style={{
-                      padding: '10px 16px 14px 50px',
-                      background: '#fafaf8',
-                      font: '400 12.5px/1.5 var(--font-dm-sans), sans-serif',
-                      color: '#7a7a7a',
-                    }}>
-                      Session-Details werden bald verfügbar.
-                    </div>
-                  )}
                 </div>
               )
             })}

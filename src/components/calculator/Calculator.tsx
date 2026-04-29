@@ -794,7 +794,7 @@ function ListingImport({ url, onUrlChange, onFill }: {
             </p>
           )}
           <p style={{ margin: 0, font: '400 11.5px/1.4 var(--font-dm-sans), sans-serif', color: 'rgba(38,37,30,0.7)' }}>
-            Einige Portale blockieren das automatische Auslesen. Kopiere stattdessen den Inseratstext:
+            Inseratstext manuell einfügen:
           </p>
           <textarea
             value={fallbackText}
@@ -813,8 +813,8 @@ function ListingImport({ url, onUrlChange, onFill }: {
           />
           <ol style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 2, font: '400 10.5px/1.45 var(--font-dm-sans), sans-serif', color: 'rgba(38,37,30,0.45)' }}>
             <li>1. Öffne das Inserat im Browser</li>
-            <li>2. Markiere den gesamten Text (Strg+A)</li>
-            <li>3. Kopiere ihn hier rein (Strg+V)</li>
+            <li>2. Alles markieren (Strg+A) und kopieren (Strg+C)</li>
+            <li>3. Hier einfügen (Strg+V)</li>
           </ol>
           <button
             onClick={() => { void handleFallbackAnalyze() }}
@@ -828,7 +828,7 @@ function ListingImport({ url, onUrlChange, onFill }: {
               transition: 'opacity 150ms ease',
             }}
           >
-            Text analysieren
+            Inserat analysieren
           </button>
         </div>
       )}
@@ -1230,7 +1230,7 @@ export default function Calculator() {
   const rows = project10yr(r, projYrs)
   const score = dealScore(r)
   const cfBadge = r.monthlyCashflow >= 0 ? '#16A34A' : '#DC2626'
-  const cfBarColor = r.monthlyCashflow >= 0 ? '#1C1C1C' : '#DC2626'
+  const cfBarColor = '#1C1C1C'
   const isElite = score >= 95
   const extTone: ExtTone = isElite ? 'elite' : state.tone
   const extLabel = isElite ? 'Exzellenter Deal' : state.label

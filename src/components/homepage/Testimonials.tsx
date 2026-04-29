@@ -14,7 +14,7 @@ const TESTIMONIALS = [
     fallback: 'https://randomuser.me/api/portraits/women/68.jpg',
   },
   {
-    quote: 'Der Deal-Score gibt mir eine schnelle Einschätzung, bevor ich mich tiefer in ein Objekt reinarbeite. Sehr praktisch bei vielen Inseraten.',
+    quote: 'Der Deal Score gibt mir eine schnelle Einschätzung, bevor ich mich tiefer in ein Objekt reinarbeite. Sehr praktisch bei vielen Inseraten.',
     name: 'Thomas W.',
     avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop&crop=face',
     fallback: 'https://randomuser.me/api/portraits/men/52.jpg',

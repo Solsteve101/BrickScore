@@ -197,7 +197,8 @@ function ProfileSection({ user, update: _update }: { user: ReturnType<typeof use
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
         <span style={{
-          width: 56, height: 56, borderRadius: '50%',
+          width: 56, height: 56, minWidth: 56, minHeight: 56, flexShrink: 0,
+          aspectRatio: '1 / 1', borderRadius: '50%',
           background: user?.image ? `url(${user.image}) center/cover no-repeat` : 'linear-gradient(135deg, #3d3d3d, #141414)',
           color: '#ffffff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           font: '600 22px/1 var(--font-dm-sans), sans-serif',
@@ -460,16 +461,18 @@ function DeleteSection({ onConfirmed }: { onConfirmed: () => Promise<void> }) {
       <button
         type="button"
         onClick={() => setConfirm(true)}
+        className="bs-delete-account-btn"
         style={{
           alignSelf: 'flex-start',
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           padding: '10px 24px', borderRadius: 10,
           background: '#FFFFFF', color: '#DC2626',
           border: '1px solid #D6D6D4',
-          font: '500 14px/1 var(--font-dm-sans), Inter, sans-serif',
+          font: '500 14px/1.3 var(--font-dm-sans), Inter, sans-serif',
           cursor: 'pointer',
           transition: 'all 0.2s ease',
-          whiteSpace: 'nowrap',
+          maxWidth: '100%',
+          textAlign: 'center',
         }}
       >
         Konto und alle Daten unwiderruflich löschen

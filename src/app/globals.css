@@ -117,8 +117,6 @@
     scroll-behavior: smooth;
     font-size: 15px;
     line-height: 1.55;
-    overflow-x: hidden;
-    max-width: 100vw;
   }
   input:focus { outline: none; }
   input::placeholder { color: #9a9a9a; }
@@ -510,6 +508,22 @@
     font-size: 12px !important;
     white-space: nowrap !important;
   }
+
+  /* Settings — delete account button: full width, wrap, smaller on mobile */
+  .bs-delete-account-btn {
+    align-self: stretch !important;
+    width: 100% !important;
+    padding: 10px 12px !important;
+    font-size: 13px !important;
+    white-space: normal !important;
+    line-height: 1.3 !important;
+  }
+
+  /* Auth pages (login, signup, forgot-password) — center headers, comfortable padding */
+  .bs-auth-main { padding: 32px 24px !important; }
+  .bs-auth-main header { text-align: center !important; }
+  .bs-auth-main header h1 { text-align: center !important; }
+  .bs-auth-main header p { text-align: center !important; }
 
   /* Hero — single column, hide photo collage */
   .bs-hero-section { padding: 32px 5% 24px !important; }

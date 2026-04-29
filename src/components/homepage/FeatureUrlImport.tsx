@@ -28,7 +28,7 @@ export default function FeatureUrlImport() {
     <SectionEyebrow
       num="01"
       title="Inserat einfügen, Analyse startet"
-      subtitle="BrickScore liest Kaufpreis, Fläche und Standort direkt aus dem ImmoScout24-Inserat. Kaufnebenkosten nach Bundesland werden automatisch berechnet."
+      subtitle="BrickScore extrahiert Kaufpreis, Fläche und Standort direkt aus dem ImmoScout24-Inserat. Kaufnebenkosten nach Bundesland werden automatisch berechnet."
     >
       <div
         style={{

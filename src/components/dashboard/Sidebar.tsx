@@ -109,7 +109,7 @@ export default function Sidebar() {
       borderRight: '1px solid #E7E5E1',
       display: 'flex', flexDirection: 'column',
       padding: '22px 14px 18px',
-      position: 'sticky', top: 0, height: '100vh',
+      height: '100%', overflowY: 'auto',
     }}>
       {/* Brand */}
       <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '4px 8px 18px', textDecoration: 'none' }}>

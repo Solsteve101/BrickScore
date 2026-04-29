@@ -52,9 +52,9 @@ function UrlMockup() {
 
 function KpiMockup() {
   const row1 = [
-    { label: 'Monats-Cashflow', value: '+€635', color: '#1f8a65' },
-    { label: 'Jahres-Cashflow', value: '+€7.617', color: '#1f8a65' },
-    { label: 'Netto-Rendite', value: '5,1 %', color: '#0a0a0a' },
+    { label: 'Monatlicher Cashflow', value: '+€635', color: '#1f8a65' },
+    { label: 'Jährlicher Cashflow', value: '+€7.617', color: '#1f8a65' },
+    { label: 'Nettorendite', value: '5,1 %', color: '#0a0a0a' },
   ]
   const row2 = [
     { label: 'Cash-on-Cash', value: '5,4 %', color: '#1f8a65' },
@@ -259,7 +259,7 @@ const TABS: Tab[] = [
     id: 'url',
     label: 'URL-Import',
     headline: 'Link einfügen, Analyse startet',
-    sub: 'BrickScore liest Kaufpreis, Fläche und Standort direkt aus dem Inserat. Kaufnebenkosten nach Bundesland werden automatisch berechnet.',
+    sub: 'BrickScore extrahiert Kaufpreis, Fläche und Standort direkt aus dem Inserat. Kaufnebenkosten nach Bundesland werden automatisch berechnet.',
     bullets: [
       'Daten direkt aus dem Inserat',
       'Kaufnebenkosten nach Bundesland',
@@ -270,11 +270,11 @@ const TABS: Tab[] = [
   {
     id: 'kpis',
     label: 'Rendite KPIs',
-    headline: 'Alle KPIs auf einen Blick',
-    sub: 'Monats-Cashflow, Netto-Rendite und Cash-on-Cash Return. Präzise berechnet nach deutschen Standards.',
+    headline: 'Die Zahlen, die zählen',
+    sub: 'Cashflow, Nettorendite, Cash-on-Cash und LTV — sofort berechnet, direkt vergleichbar.',
     bullets: [
-      'Monats- & Jahres-Cashflow',
-      'Netto-Rendite & Cash-on-Cash',
+      'Monatlicher & Jährlicher Cashflow',
+      'Nettorendite & Cash-on-Cash',
       'Loan-to-Value (LTV)',
     ],
     mockup: <KpiMockup />,

@@ -94,7 +94,6 @@ export default function CtaBand() {
           }}
         >
           Vom Inserat zur Rendite in unter einer Minute.
-          Kostenlos starten, keine Kreditkarte nötig.
         </p>
 
         <a

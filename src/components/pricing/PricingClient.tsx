@@ -1,9 +1,26 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
+import { getUsage, type UsagePlan, type BillingInterval } from '@/lib/usage-store'
+import { pushToast } from '@/lib/toast'
 
 type Cycle = 'monthly' | 'yearly'
+type PaidKey = 'pro' | 'business'
+
+const PLAN_RANK: Record<UsagePlan, number> = { free: 0, pro: 1, business: 2 }
+
+const PRICE_IDS: Record<PaidKey, Record<Cycle, string | undefined>> = {
+  pro: {
+    monthly: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO_MONTHLY,
+    yearly: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO_YEARLY,
+  },
+  business: {
+    monthly: process.env.NEXT_PUBLIC_STRIPE_PRICE_BUSINESS_MONTHLY,
+    yearly: process.env.NEXT_PUBLIC_STRIPE_PRICE_BUSINESS_YEARLY,
+  },
+}
 
 interface Tier {
   key: 'free' | 'pro' | 'business'
@@ -30,9 +47,9 @@ const TIERS: Tier[] = [
     yearlySavings: 0,
     features: [
       { text: '20 Tokens pro Woche', included: true },
-      { text: '5 KPIs + Deal-Score', included: true },
-      { text: 'Link-Import & Text-Analyse', included: true },
-      { text: '10-Jahres-Projektion', included: true },
+      { text: '5 KPIs + Deal Score', included: true },
+      { text: 'Linkimport & Textanalyse', included: true },
+      { text: '10-Jahres Projektion', included: true },
       { text: 'Wasserzeichen auf Exporten', included: false },
     ],
     ctaLabel: 'Kostenlos starten',
@@ -99,8 +116,64 @@ function fmtEur(n: number): string {
 }
 
 export default function PricingClient() {
+  const { status } = useSession()
+  const isAuthed = status === 'authenticated'
+
   const [cycle, setCycle] = useState<Cycle>('monthly')
   const [openFaq, setOpenFaq] = useState<number | null>(0)
+  const [plan, setPlan] = useState<UsagePlan>('free')
+  const [planInterval, setPlanInterval] = useState<BillingInterval | null>(null)
+  const [busyPlan, setBusyPlan] = useState<PaidKey | null>(null)
+
+  useEffect(() => {
+    if (!isAuthed) return
+    const sync = () => {
+      const u = getUsage()
+      setPlan(u.plan)
+      setPlanInterval(u.interval ?? null)
+      if (u.interval === 'monthly' || u.interval === 'yearly') setCycle(u.interval)
+    }
+    sync()
+    const onFocus = () => sync()
+    const onStorage = (e: StorageEvent) => { if (e.key === 'brickscore_usage') sync() }
+    window.addEventListener('focus', onFocus)
+    window.addEventListener('storage', onStorage)
+    return () => {
+      window.removeEventListener('focus', onFocus)
+      window.removeEventListener('storage', onStorage)
+    }
+  }, [isAuthed])
+
+  const startCheckout = async (key: PaidKey) => {
+    if (busyPlan) return
+    const userRank = PLAN_RANK[plan]
+    const targetRank = PLAN_RANK[key]
+    if (userRank > targetRank) return
+    if (userRank === targetRank && planInterval === cycle) return
+    const priceId = PRICE_IDS[key][cycle]
+    if (!priceId) {
+      pushToast({ variant: 'error', message: `Preis-ID für ${key} (${cycle}) ist nicht konfiguriert.` })
+      return
+    }
+    setBusyPlan(key)
+    try {
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ priceId, plan: key, interval: cycle }),
+      })
+      const json = await res.json().catch(() => ({})) as { url?: string; message?: string; error?: string }
+      if (!res.ok || !json.url) {
+        pushToast({ variant: 'error', message: json.message ?? json.error ?? 'Checkout konnte nicht gestartet werden.' })
+        setBusyPlan(null)
+        return
+      }
+      window.location.href = json.url
+    } catch (e) {
+      pushToast({ variant: 'error', message: e instanceof Error ? e.message : 'Checkout konnte nicht gestartet werden.' })
+      setBusyPlan(null)
+    }
+  }
 
   return (
     <div style={{ background: '#ffffff', padding: '72px 20px 96px' }}>
@@ -148,7 +221,18 @@ export default function PricingClient() {
           alignItems: 'stretch',
           marginBottom: 64,
         }}>
-          {TIERS.map((tier) => <TierCard key={tier.key} tier={tier} cycle={cycle} />)}
+          {TIERS.map((tier) => (
+            <TierCard
+              key={tier.key}
+              tier={tier}
+              cycle={cycle}
+              isAuthed={isAuthed}
+              currentPlan={plan}
+              currentInterval={planInterval}
+              busy={tier.key !== 'free' && busyPlan === tier.key}
+              onUpgrade={tier.key === 'free' ? undefined : () => { void startCheckout(tier.key as PaidKey) }}
+            />
+          ))}
         </div>
 
         {/* FAQ */}
@@ -222,9 +306,45 @@ export default function PricingClient() {
   )
 }
 
-function TierCard({ tier, cycle }: { tier: Tier; cycle: Cycle }) {
+function TierCard({
+  tier, cycle, isAuthed, currentPlan, currentInterval, busy, onUpgrade,
+}: {
+  tier: Tier
+  cycle: Cycle
+  isAuthed: boolean
+  currentPlan: UsagePlan
+  currentInterval: BillingInterval | null
+  busy: boolean
+  onUpgrade?: () => void
+}) {
   const isFree = tier.key === 'free'
   const monthlyShown = cycle === 'monthly' ? tier.monthly : tier.yearly
+
+  // Decide button state. Unauthenticated visitors keep the static "starten" CTA → /signup.
+  type BtnState = 'static' | 'current' | 'included' | 'switch-yearly' | 'switch-monthly' | 'upgrade'
+  let btnState: BtnState = 'static'
+  let btnLabel: string = tier.ctaLabel
+
+  if (isAuthed) {
+    const cardRank = PLAN_RANK[tier.key as UsagePlan]
+    const userRank = PLAN_RANK[currentPlan]
+    const isCurrentPlan = userRank === cardRank
+    const isIncluded = userRank > cardRank
+    const exactMatch = isCurrentPlan && (isFree || currentInterval === cycle)
+    const switchToYearly = isCurrentPlan && !isFree && currentInterval === 'monthly' && cycle === 'yearly'
+    const switchToMonthly = isCurrentPlan && !isFree && currentInterval === 'yearly' && cycle === 'monthly'
+
+    if (exactMatch) { btnState = 'current'; btnLabel = 'Aktueller Plan' }
+    else if (isIncluded) { btnState = 'included'; btnLabel = 'Inkludiert' }
+    else if (switchToYearly) { btnState = 'switch-yearly'; btnLabel = busy ? 'Weiterleiten…' : 'Auf Jährlich wechseln' }
+    else if (switchToMonthly) { btnState = 'switch-monthly'; btnLabel = busy ? 'Weiterleiten…' : 'Auf Monatlich wechseln' }
+    else if (!isFree) { btnState = 'upgrade'; btnLabel = busy ? 'Weiterleiten…' : `Upgrade auf ${tier.name}` }
+    // Free tier when user is on a paid plan falls through with 'static' which we override below
+    else { btnState = 'included'; btnLabel = 'Inkludiert' }
+  }
+
+  const passive = btnState === 'current' || btnState === 'included'
+  const disabled = passive || busy
 
   return (
     <div style={{
@@ -306,30 +426,51 @@ function TierCard({ tier, cycle }: { tier: Tier; cycle: Cycle }) {
         ))}
       </ul>
 
-      <Link
-        href="/signup"
-        style={{
-          marginTop: 'auto',
-          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-          width: '100%', padding: '10px 24px',
-          borderRadius: 10,
-          background: tier.highlight ? '#1C1C1C' : '#FFFFFF',
-          color: tier.highlight ? '#FFFFFF' : '#1C1C1C',
-          border: tier.highlight ? 'none' : '1px solid #D6D6D4',
-          font: '500 14px/1 var(--font-dm-sans), sans-serif',
-          textDecoration: 'none',
-          transition: 'all 0.2s ease',
-          whiteSpace: 'nowrap',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = tier.highlight ? '#2C2C2C' : '#F5F5F3'
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = tier.highlight ? '#1C1C1C' : '#FFFFFF'
-        }}
-      >
-        {tier.ctaLabel}
-      </Link>
+      {btnState === 'static' ? (
+        <Link
+          href="/signup"
+          style={{
+            marginTop: 'auto',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            width: '100%', padding: '10px 24px',
+            borderRadius: 10,
+            background: tier.highlight ? '#1C1C1C' : '#FFFFFF',
+            color: tier.highlight ? '#FFFFFF' : '#1C1C1C',
+            border: tier.highlight ? 'none' : '1px solid #D6D6D4',
+            font: '500 14px/1 var(--font-dm-sans), sans-serif',
+            textDecoration: 'none',
+            transition: 'all 0.2s ease',
+            whiteSpace: 'nowrap',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = tier.highlight ? '#2C2C2C' : '#F5F5F3' }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = tier.highlight ? '#1C1C1C' : '#FFFFFF' }}
+        >
+          {btnLabel}
+        </Link>
+      ) : (
+        <button
+          type="button"
+          onClick={disabled ? undefined : onUpgrade}
+          disabled={disabled}
+          title={btnLabel}
+          style={{
+            marginTop: 'auto',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            width: '100%', padding: '10px 24px',
+            borderRadius: 10,
+            background: passive ? '#FFFFFF' : '#1C1C1C',
+            color: passive ? '#1C1C1C' : '#FFFFFF',
+            border: passive ? '1px solid #D6D6D4' : 'none',
+            font: '500 14px/1 var(--font-dm-sans), sans-serif',
+            cursor: disabled ? 'not-allowed' : (busy ? 'wait' : 'pointer'),
+            opacity: passive ? 0.5 : (busy ? 0.85 : 1),
+            transition: 'all 0.2s ease',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {btnLabel}
+        </button>
+      )}
     </div>
   )
 }

@@ -31,9 +31,9 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#fafafa' }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: '#fafafa' }}>
       <Sidebar />
-      <main className="bs-dashboard-main" style={{ flex: 1, minWidth: 0 }}>{children}</main>
+      <main className="bs-dashboard-main" style={{ flex: 1, minWidth: 0, height: '100%', overflowY: 'auto' }}>{children}</main>
       <MobileBottomNav />
     </div>
   )

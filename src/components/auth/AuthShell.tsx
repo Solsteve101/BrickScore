@@ -7,6 +7,7 @@ import { BrickScoreLogo } from '@/components/ui/brickscore-logo'
 export default function AuthShell({ children }: { children: ReactNode }) {
   return (
     <div
+      className="v-auth-grid"
       style={{
         minHeight: '100vh',
         width: '100%',
@@ -107,15 +108,15 @@ export default function AuthShell({ children }: { children: ReactNode }) {
           </div>
 
           <div style={{ display: 'inline-flex', gap: 22, font: '400 12.5px/1 var(--font-dm-sans), sans-serif', color: 'rgba(247,247,244,0.45)' }}>
-            <Link href="#" style={{ color: 'inherit', textDecoration: 'none' }}>About</Link>
-            <Link href="#" style={{ color: 'inherit', textDecoration: 'none' }}>FAQ</Link>
-            <Link href="#" style={{ color: 'inherit', textDecoration: 'none' }}>Support</Link>
+            <Link href="/#about" style={{ color: 'inherit', textDecoration: 'none' }}>About</Link>
+            <Link href="/kontakt" style={{ color: 'inherit', textDecoration: 'none' }}>Support</Link>
           </div>
         </div>
       </aside>
 
       {/* RIGHT — form panel */}
       <main
+        className="bs-auth-main"
         style={{
           display: 'flex',
           alignItems: 'center',

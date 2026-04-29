@@ -477,12 +477,10 @@ function PlanCard({
         )}
       </div>
 
-      <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 6 }}>
         {features.map((f) => (
-          <li key={f} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, font: '400 13px/1.4 var(--font-dm-sans), sans-serif', color: '#3a3a3a' }}>
-            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ color: '#1f8a65', flexShrink: 0 }}>
-              <path d="M3 8.5l3.2 3.2L13 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+          <li key={f} style={{ display: 'flex', alignItems: 'baseline', gap: 8, font: '400 13px/1.4 var(--font-dm-sans), sans-serif', color: '#3a3a3a' }}>
+            <span aria-hidden="true" style={{ color: '#9a9a9a', flexShrink: 0 }}>•</span>
             {f}
           </li>
         ))}

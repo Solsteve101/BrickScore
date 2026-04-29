@@ -2,9 +2,10 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Plus, LayoutGrid, Download, Settings } from 'lucide-react'
+import { Home, Plus, LayoutGrid, Download, Settings } from 'lucide-react'
 
 const ITEMS = [
+  { href: '/', icon: Home, label: 'Home' },
   { href: '/dashboard/new', icon: Plus, label: 'Neu' },
   { href: '/dashboard', icon: LayoutGrid, label: 'Deals' },
   { href: '/dashboard/exports', icon: Download, label: 'Exporte' },
@@ -15,6 +16,7 @@ export function MobileBottomNav() {
   const pathname = usePathname() ?? ''
 
   const isActive = (href: string) => {
+    if (href === '/') return pathname === '/'
     if (href === '/dashboard') return pathname === '/dashboard'
     return pathname === href || pathname.startsWith(href + '/')
   }

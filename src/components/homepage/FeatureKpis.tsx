@@ -11,8 +11,8 @@ interface KpiCard {
 }
 
 const KPIS: KpiCard[] = [
-  { label: 'Monats-Cashflow', value: '+€ 412', sub: 'nach Kapitaldienst', color: '#1f8a65' },
-  { label: 'Netto-Rendite', value: '4,8 %', sub: 'nach allen Kosten', color: '#26251e' },
+  { label: 'Monatlicher Cashflow', value: '+€ 412', sub: 'nach Kapitaldienst', color: '#1f8a65' },
+  { label: 'Nettorendite', value: '4,8 %', sub: 'nach allen Kosten', color: '#26251e' },
   { label: 'Cash-on-Cash', value: '6,2 %', sub: 'auf Eigenkapital', color: '#26251e', star: true },
   { label: 'LTV', value: '78 %', sub: 'Loan-to-Value', color: '#26251e' },
 ]
@@ -21,8 +21,8 @@ export default function FeatureKpis() {
   return (
     <SectionEyebrow
       num="02"
-      title="Alle KPIs auf einen Blick"
-      subtitle="Cashflow, Mietrendite und Cash-on-Cash Return. Präzise berechnet, fertig für dein Bankgespräch."
+      title="Die Zahlen, die zählen"
+      subtitle="Cashflow, Nettorendite, Cash-on-Cash und LTV — sofort berechnet, direkt vergleichbar."
     >
       <div
         style={{
