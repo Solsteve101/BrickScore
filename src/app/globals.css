@@ -343,9 +343,43 @@
   /* Feature tabs — stack text + mockup */
   .bs-feature-tab-grid {
     grid-template-columns: 1fr !important;
-    gap: 40px !important;
-    padding: 56px 5% !important;
+    gap: 32px !important;
+    padding: 40px 5% !important;
   }
+
+  /* Hero — single column, hide photo collage */
+  .bs-hero-section { padding: 32px 5% 24px !important; }
+  .bs-hero-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0 !important;
+    align-items: start !important;
+  }
+  .bs-hero-photos { display: none !important; height: 0 !important; }
+
+  /* PortalWall — small section, tight spacing */
+  .bs-portalwall { padding: 16px 0 16px !important; }
+
+  /* StatsBar — comfortable mobile padding */
+  .bs-stats-section { padding: 32px 5% !important; }
+
+  /* Testimonials — comfortable mobile padding */
+  .bs-testimonials-section { padding: 40px 5% !important; }
+
+  /* ComparisonTable — comfortable mobile padding */
+  .bs-comparison-section { padding: 40px 5% 24px !important; }
+
+  /* TrustStatement — adjust mobile padding (overrides stack-vertically rule above) */
+  .bs-trust-section { padding: 32px 5% !important; }
+
+  /* Header — hamburger left, logo centered, account right */
+  .bs-header-row {
+    display: grid !important;
+    grid-template-columns: 1fr auto 1fr !important;
+    justify-content: stretch !important;
+  }
+  .bs-header-row > :first-child { justify-self: start; }
+  .bs-header-logo { justify-self: center !important; }
+  .bs-header-right { justify-self: end !important; }
 }
 
 /* Testimonials — 2 cols at tablet width */

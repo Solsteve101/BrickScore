@@ -29,7 +29,7 @@ const TESTIMONIALS = [
 
 export default function Testimonials() {
   return (
-    <section style={{ padding: '96px 5%', background: '#fafafa' }}>
+    <section className="bs-testimonials-section" style={{ padding: '96px 5%', background: '#fafafa' }}>
       <div style={{ marginBottom: 56 }}>
         <h2
           style={{

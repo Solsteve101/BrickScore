@@ -78,7 +78,7 @@ const LOGOS = [
 
 export default function PortalWall() {
   return (
-    <section style={{ background: '#fff', padding: '28px 0' }}>
+    <section className="bs-portalwall" style={{ background: '#fff', padding: '28px 0' }}>
       {/* Label */}
       <p
         style={{

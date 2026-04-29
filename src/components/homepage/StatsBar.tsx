@@ -7,7 +7,7 @@ const STATS = [
 
 export default function StatsBar() {
   return (
-    <section id="demo" style={{ padding: '72px 5%', background: '#fff', scrollMarginTop: 80 }}>
+    <section id="demo" className="bs-stats-section" style={{ padding: '72px 5%', background: '#fff', scrollMarginTop: 80 }}>
       <div className="bs-stats-grid">
         {STATS.map((stat, i) => (
           <div

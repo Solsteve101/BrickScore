@@ -37,12 +37,16 @@ export default function Header() {
       }}
     >
       <div
-        className="px-5 md:px-12 flex items-center justify-between"
+        className="bs-header-row px-5 md:px-12 flex items-center justify-between"
         style={{ height: 68 }}
       >
-        {/* Logo — left */}
+        {/* Mobile hamburger — first on mobile (left); hidden on desktop */}
+        <MobileNav />
+
+        {/* Logo — left on desktop, centered on mobile */}
         <Link
           href="/"
+          className="bs-header-logo"
           style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -86,11 +90,8 @@ export default function Header() {
         </nav>
 
         {/* Right actions */}
-        <div className="flex items-center" style={{ gap: 12 }}>
-          {/* Mobile hamburger menu — first on mobile */}
-          <MobileNav />
-
-          {/* Auth area: UserMenu (any width) or CTAs (desktop only) */}
+        <div className="bs-header-right flex items-center gap-3">
+          {/* Auth area: UserMenu (any width) or CTAs (desktop only) — first on mobile */}
           {status === 'loading' ? (
             <span style={{ width: 36, height: 36 }} aria-hidden="true" />
           ) : status === 'authenticated' && session?.user ? (

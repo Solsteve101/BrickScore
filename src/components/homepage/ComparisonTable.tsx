@@ -47,7 +47,7 @@ function Cell({ value, highlight }: { value: CellValue; highlight?: boolean }) {
 
 export default function ComparisonTable() {
   return (
-    <section style={{ padding: '96px 5% 48px', background: '#fff' }}>
+    <section className="bs-comparison-section" style={{ padding: '96px 5% 48px', background: '#fff' }}>
       {/* Heading */}
       <div style={{ textAlign: 'center', marginBottom: 64 }}>
         <h2 style={{ margin: '0 0 4px', font: '700 clamp(36px, 4.5vw, 56px)/1.08 var(--font-dm-sans), sans-serif', letterSpacing: '-0.03em', color: '#0a0a0a' }}>

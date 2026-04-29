@@ -39,26 +39,25 @@ export function MobileNav() {
   }
 
   return (
-    <div ref={ref} className="md:hidden relative">
+    <div ref={ref} className="md:hidden relative flex items-center">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-label={open ? 'Menü schließen' : 'Menü öffnen'}
         aria-expanded={open}
-        className="inline-flex items-center justify-center p-0 bg-transparent border-0 outline-none cursor-pointer"
+        className="inline-flex items-center justify-center p-0 cursor-pointer"
+        style={{ width: 36, height: 36, background: 'none', border: 'none', boxShadow: 'none', outline: 'none' }}
       >
-        {open ? <X size={22} color="#1C1C1C" /> : <Menu size={22} color="#1C1C1C" />}
+        {open ? <X size={20} color="#1C1C1C" /> : <Menu size={20} color="#1C1C1C" />}
       </button>
       {open && (
         <div
-          className="absolute right-0 z-50"
+          className="fixed left-0 right-0 z-50"
           style={{
-            top: 'calc(100% + 8px)',
-            width: 220,
+            top: 68,
             background: '#ffffff',
-            borderRadius: 10,
-            border: '1px solid #E6E6E4',
-            boxShadow: '0 10px 28px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.04)',
+            borderBottom: '1px solid #E6E6E4',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
             overflow: 'hidden',
           }}
         >
@@ -69,7 +68,7 @@ export function MobileNav() {
               onClick={handleLinkClick(href)}
               style={{
                 display: 'block',
-                padding: '12px 20px',
+                padding: '14px 20px',
                 font: '500 15px/1.4 var(--font-dm-sans), sans-serif',
                 color: '#1C1C1C',
                 textDecoration: 'none',

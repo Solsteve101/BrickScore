@@ -157,7 +157,7 @@ export default function Hero() {
   }, [])
 
   return (
-    <section style={{ position: 'relative', padding: '40px 5% 24px', background: '#fff', overflow: 'hidden' }}>
+    <section className="bs-hero-section" style={{ position: 'relative', padding: '40px 5% 24px', background: '#fff', overflow: 'hidden' }}>
       {/* Map — absolute inside section, flush top-right corner */}
       <div style={{
         position: 'absolute',
@@ -181,13 +181,13 @@ export default function Hero() {
         }} />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 56, alignItems: 'center', position: 'relative', zIndex: 2 }}>
+      <div className="bs-hero-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 56, alignItems: 'center', position: 'relative', zIndex: 2 }}>
 
         {/* ── Left: headline + CTA ── */}
         <div style={{ alignSelf: 'center' }}>
           <h1 style={{
             margin: 0,
-            font: '700 clamp(38px, 4.2vw, 52px)/1.04 var(--font-dm-sans), sans-serif',
+            font: '700 clamp(44px, 4.2vw, 52px)/1.04 var(--font-dm-sans), sans-serif',
             letterSpacing: '-0.03em',
             color: '#0a0a0a',
           }}>
@@ -238,7 +238,7 @@ export default function Hero() {
         </div>
 
         {/* ── Right: photo collage ── */}
-        <div style={{ position: 'relative', height: 630, marginLeft: 75 }}>
+        <div className="bs-hero-photos" style={{ position: 'relative', height: 630, marginLeft: 75 }}>
 
           {/* Photo 1 — large portrait, top-left */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
