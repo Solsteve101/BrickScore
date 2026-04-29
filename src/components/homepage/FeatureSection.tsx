@@ -14,6 +14,7 @@ interface Tab {
 function UrlMockup() {
   return (
     <div
+      className="bs-mockup"
       style={{
         background: '#f8f8f8',
         border: '1px solid #e5e5e5',
@@ -22,15 +23,15 @@ function UrlMockup() {
         fontFamily: 'var(--font-dm-sans)',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-        <div style={{ flex: 1, background: '#fff', border: '1px solid #e0e0e0', borderRadius: 7, padding: '10px 14px', font: '400 13px/1 var(--font-dm-sans)', color: '#aaa' }}>
+      <div className="bs-mockup-url-row" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+        <div className="bs-mockup-url-input" style={{ flex: 1, minWidth: 0, background: '#fff', border: '1px solid #e0e0e0', borderRadius: 7, padding: '10px 14px', font: '400 13px/1 var(--font-dm-sans)', color: '#aaa', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           https://www.immoscout24.de/expose/...
         </div>
-        <div style={{ background: '#0a0a0a', color: '#fff', padding: '10px 16px', borderRadius: 7, font: '500 13px/1 var(--font-dm-sans)', whiteSpace: 'nowrap' }}>
+        <div className="bs-mockup-url-btn" style={{ background: '#0a0a0a', color: '#fff', padding: '10px 16px', borderRadius: 7, font: '500 13px/1 var(--font-dm-sans)', whiteSpace: 'nowrap' }}>
           Analysieren →
         </div>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+      <div className="bs-mockup-cards" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         {[
           ['Kaufpreis', '€ 425.000'],
           ['Bundesland', 'Berlin'],
@@ -60,8 +61,8 @@ function KpiMockup() {
     { label: 'LTV', value: '80,6 %', color: '#0a0a0a' },
   ]
   return (
-    <div style={{ background: '#f8f8f8', border: '1px solid #e5e5e5', borderRadius: 12, padding: 24 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 10 }}>
+    <div className="bs-mockup" style={{ background: '#f8f8f8', border: '1px solid #e5e5e5', borderRadius: 12, padding: 24 }}>
+      <div className="bs-mockup-kpi-row3" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 10 }}>
         {row1.map((k) => (
           <div key={k.label} style={{ background: '#fff', border: '1px solid #eee', borderRadius: 8, padding: '14px 16px' }}>
             <div style={{ font: '400 11px/1 var(--font-dm-sans)', color: '#9a9a9a', marginBottom: 8 }}>{k.label}</div>
@@ -69,7 +70,7 @@ function KpiMockup() {
           </div>
         ))}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+      <div className="bs-mockup-kpi-row2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         {row2.map((k) => (
           <div key={k.label} style={{ background: '#fff', border: '1px solid #eee', borderRadius: 8, padding: '14px 16px' }}>
             <div style={{ font: '400 11px/1 var(--font-dm-sans)', color: '#9a9a9a', marginBottom: 8 }}>{k.label}</div>
@@ -116,6 +117,7 @@ function DashboardMockup() {
 
   return (
     <div
+      className="bs-mockup"
       style={{
         background: '#f8f8f8',
         border: '1px solid #e5e5e5',
@@ -137,7 +139,7 @@ function DashboardMockup() {
         Meine Deals · 3
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+      <div className="bs-mockup-deals" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
         {deals.map((d) => (
           <div
             key={d.title}
@@ -298,7 +300,7 @@ export default function FeatureSection() {
   return (
     <section id="features" style={{ padding: '0 0 0', background: '#fff' }}>
       {/* Tab nav */}
-      <div style={{ padding: '0 5%', borderBottom: '1px solid #e5e5e5', display: 'flex', alignItems: 'center', gap: 0 }}>
+      <div className="bs-feature-tabs" style={{ padding: '0 5%', borderBottom: '1px solid #e5e5e5', display: 'flex', alignItems: 'center', gap: 0, overflowX: 'auto' }}>
         {TABS.map((t) => (
           <button
             key={t.id}

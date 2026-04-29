@@ -157,7 +157,7 @@ export default function SubscriptionClient() {
   }
 
   return (
-    <div style={{ padding: '36px 40px 60px' }}>
+    <div className="bs-sub-page" style={{ padding: '36px 40px 60px' }}>
       <header style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 24 }}>
         <h1 style={{ margin: 0, font: '700 28px/1.2 var(--font-dm-sans), sans-serif', letterSpacing: '-0.6px', color: '#0a0a0a' }}>
           Abonnement
@@ -177,8 +177,8 @@ export default function SubscriptionClient() {
         display: 'flex', flexDirection: 'column', gap: 14,
         marginBottom: 22,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div className="bs-sub-current-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
             <h2 style={{ margin: 0, font: '600 22px/1 var(--font-dm-sans), sans-serif', color: '#0a0a0a', letterSpacing: '-0.3px' }}>
               {plan === 'pro' ? 'Pro' : plan === 'business' ? 'Business' : 'Free'}
             </h2>
@@ -194,15 +194,18 @@ export default function SubscriptionClient() {
           <button
             type="button"
             disabled
+            className="bs-sub-manage-btn"
             style={{
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              padding: '10px 24px', borderRadius: 10,
+              padding: '6px 12px', borderRadius: 10,
               background: '#FFFFFF', color: '#1C1C1C',
               border: '1px solid #D6D6D4',
-              font: '500 14px/1 var(--font-dm-sans), sans-serif',
+              font: '500 12px/1 var(--font-dm-sans), sans-serif',
               cursor: 'not-allowed',
               opacity: 0.5,
               transition: 'all 0.2s ease',
+              flexShrink: 0,
+              whiteSpace: 'nowrap',
             }}
           >
             Abo verwalten

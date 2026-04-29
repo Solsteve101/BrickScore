@@ -4,6 +4,7 @@ import { useEffect, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import Sidebar from './Sidebar'
+import { MobileBottomNav } from '@/components/mobile-bottom-nav'
 
 export default function DashboardShell({ children }: { children: ReactNode }) {
   const router = useRouter()
@@ -32,7 +33,8 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#fafafa' }}>
       <Sidebar />
-      <main style={{ flex: 1, minWidth: 0 }}>{children}</main>
+      <main className="bs-dashboard-main" style={{ flex: 1, minWidth: 0 }}>{children}</main>
+      <MobileBottomNav />
     </div>
   )
 }

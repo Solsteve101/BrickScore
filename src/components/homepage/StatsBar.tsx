@@ -13,11 +13,12 @@ export default function StatsBar() {
           <div
             key={stat.label}
             className={`bs-stat-cell bs-stat-${i}`}
-            style={{ padding: '0 32px' }}
+            style={{ padding: '0 32px', textAlign: 'center' }}
           >
             <div
+              className="bs-stat-value"
               style={{
-                font: '700 clamp(28px, 3.5vw, 48px)/1 var(--font-dm-sans), sans-serif',
+                font: '700 clamp(28px, 3.5vw, 48px)/1.1 var(--font-dm-sans), sans-serif',
                 letterSpacing: '-0.03em',
                 color: '#0a0a0a',
                 marginBottom: 8,

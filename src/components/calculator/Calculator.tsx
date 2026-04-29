@@ -205,7 +205,7 @@ function NumberInput({
   const [focused, setFocused] = useState(false)
   const displayValue = focused || raw ? String(value ?? '') : fmtNum(value)
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%', minWidth: 0 }}>
       {label && (
         <label style={{
           font: '500 10.5px/1.27 var(--font-dm-sans), sans-serif',
@@ -223,6 +223,7 @@ function NumberInput({
         background: '#ffffff',
         border: `1px solid ${focused ? '#0a0a0a' : '#e5e5e5'}`,
         transition: 'border-color 150ms ease',
+        width: '100%', minWidth: 0,
       }}>
         {prefix && (
           <span style={{ color: 'rgba(38,37,30,0.5)', fontFamily: 'var(--font-jetbrains-mono), ui-monospace, monospace', fontSize: 14 }}>
@@ -872,8 +873,8 @@ function CashflowChart({ rows, termYear }: { rows: ProjectionRow[]; termYear: nu
   const termX = termYear != null ? xOf(Math.min(termYear, years)) : null
 
   return (
-    <div style={{ position: 'relative' }}>
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block' }}>
+    <div className="bs-calc-chart-wrap" style={{ position: 'relative' }}>
+      <svg className="bs-calc-chart" viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block' }}>
         {ticks.map((t, i) => (
           <g key={i}>
             <line x1={padL} x2={W - padR} y1={yOf(t)} y2={yOf(t)} stroke="rgba(38,37,30,0.07)" strokeDasharray={t === 0 ? '' : '2 3'} />
@@ -963,8 +964,8 @@ function AmortChart({ rows, loan, equity, termYear }: { rows: ProjectionRow[]; l
   for (let i = 0; i <= tickCount; i++) ticks.push((vMax * i) / tickCount)
 
   return (
-    <div style={{ position: 'relative' }}>
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block' }} onMouseLeave={() => setHover(null)}>
+    <div className="bs-calc-chart-wrap" style={{ position: 'relative' }}>
+      <svg className="bs-calc-chart" viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block' }} onMouseLeave={() => setHover(null)}>
         {ticks.map((t, i) => (
           <g key={i}>
             <line x1={padL} x2={W - padR} y1={yOf(t)} y2={yOf(t)} stroke="rgba(38,37,30,0.07)" strokeDasharray="2 3" />
@@ -1542,13 +1543,13 @@ export default function Calculator() {
         </div>
       )}
 
-      <div style={{ padding: '28px 24px 28px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div className="bs-calc-wrap" style={{ padding: '28px 24px 28px', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
         {/* ── CALCULATOR GRID ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 2fr', gap: 24, alignItems: 'start' }}>
+        <div className="bs-calc-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 2fr', gap: 24, alignItems: 'start' }}>
 
         {/* ── SIDEBAR ── */}
-        <aside style={{ alignSelf: 'start', position: 'sticky', top: 88, padding: 16, borderRadius: 12, background: '#ffffff', border: '1px solid #e5e5e5', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <aside className="bs-calc-aside" style={{ alignSelf: 'start', position: 'sticky', top: 88, padding: 16, borderRadius: 12, background: '#ffffff', border: '1px solid #e5e5e5', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
           <ListingImport url={inputs.listingUrl} onUrlChange={upd('listingUrl')} onFill={handleFill} />
           <Divider />
@@ -1575,7 +1576,7 @@ export default function Calculator() {
 
           <InputGroup label="Objektdaten">
             <NumberInput label="Wohnfläche" suffix="m²" value={inputs.wohnflaeche} onChange={upd('wohnflaeche')} info="Wohnfläche der Immobilie in Quadratmetern — Grundlage für Kaufpreis pro m² und Gesamtkosten pro m²." />
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div className="bs-input-row-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, alignItems: 'end' }}>
               <NumberInput label="Zimmer" value={inputs.zimmer} onChange={upd('zimmer')} info="Anzahl der Zimmer — Dezimalwerte wie 2,5 sind möglich." />
               <NumberInput label="Baujahr" value={inputs.baujahr} onChange={upd('baujahr')} placeholder="z. B. 1995" raw info="Baujahr der Immobilie — relevant für Modernisierungs- und Sanierungsbedarf." />
             </div>
@@ -1604,7 +1605,7 @@ export default function Calculator() {
               />
             </div>
             <NumberInput label="Renovierung" prefix="€" value={inputs.reno} onChange={upd('reno')} info="Einmalige Modernisierungs- und Instandsetzungskosten, die vor oder kurz nach dem Kauf anfallen." />
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div className="bs-input-row-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, alignItems: 'end' }}>
               <NumberInput label="Laufende Kosten / Monat" prefix="€" value={inputs.opCosts} onChange={upd('opCosts')} info="Monatliche nicht umlegbare Bewirtschaftungskosten: Verwaltung, Instandhaltungsrücklage, Versicherungen, Grundsteuer — ohne Kapitaldienst." />
               <NumberInput label="Hausgeld / Monat" prefix="€" value={inputs.hausgeld} onChange={upd('hausgeld')} info="Monatliches Hausgeld bei Eigentumswohnungen (Instandhaltungsrücklage, Verwaltung, etc.) — wird zu den laufenden Kosten addiert." />
             </div>
@@ -1613,7 +1614,7 @@ export default function Calculator() {
 
           <InputGroup label="Finanzierung">
             <NumberInput label="Eigenkapital" prefix="€" value={inputs.equity} onChange={upd('equity')} info="Eigene Mittel, die in den Deal fließen — reduziert den Darlehensbetrag." />
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div className="bs-input-row-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, alignItems: 'end' }}>
               <NumberInput label="Zinssatz" suffix="%" value={inputs.rate} onChange={upd('rate')} info="Nominaler Sollzins des Annuitätendarlehens pro Jahr." />
               <NumberInput label="Tilgung" suffix="%" value={inputs.amort} onChange={upd('amort')} info="Anfängliche Tilgung in % p. a. — Anteil der Rate, der die Restschuld reduziert." />
             </div>
@@ -1632,7 +1633,7 @@ export default function Calculator() {
         <main id="vestora-export-target" style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
 
           {/* Verdict + Score cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div className="bs-calc-verdict" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <section style={{ padding: '20px 24px', borderRadius: 12, background: '#ffffff', border: '1px solid #e5e5e5', boxShadow: '0 4px 16px rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column', gap: 10, justifyContent: 'center', alignItems: 'center', textAlign: 'center', minWidth: 0 }}>
               <Pill tone={extTone} dot>{extLabel}</Pill>
               <h2 style={{ margin: 0, fontFamily: 'var(--font-dm-sans), sans-serif', fontWeight: 400, fontSize: 44, lineHeight: 1.05, letterSpacing: -1, color: '#26251e' }}>
@@ -1655,7 +1656,7 @@ export default function Calculator() {
           </div>
 
           {/* KPI grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12 }}>
+          <div className="bs-calc-kpis" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12 }}>
             <KpiCard label="Monats-Cashflow" value={fmtEUR(r.monthlyCashflow, { sign: true })} color={r.monthlyCashflow >= 0 ? '#1f8a65' : '#cf2d56'} hint="Effektiv pro Monat." info="Monatlicher Überschuss nach Abzug von laufenden Kosten und Kapitaldienst." />
             <KpiCard label="Jahres-Cashflow" value={fmtEUR(r.annualCashflow, { sign: true })} color={r.annualCashflow >= 0 ? '#1f8a65' : '#cf2d56'} hint="Vor Steuern." info="Monats-Cashflow × 12 vor Einkommensteuer." />
             <KpiCard label="Netto-Rendite" value={fmtPct(r.netYield)} hint="Nach laufenden Kosten." info="Jahresnettokaltmiete geteilt durch Gesamtinvest (Kaufpreis + Nebenkosten + Renovierung)." />
@@ -1669,28 +1670,28 @@ export default function Calculator() {
               Deal Summary
             </h3>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 18, paddingBottom: 16, borderBottom: '1px solid rgba(38,37,30,0.08)' }}>
+            <div className="bs-calc-sumrow" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 18, paddingBottom: 16, borderBottom: '1px solid rgba(38,37,30,0.08)' }}>
               <SumRow k="Kaufpreis" v={fmtEUR(r.price)} />
               <SumRow k={`Nebenkosten · ${r.nkPct.toFixed(1)}%`} v={fmtEUR(r.nebenkosten)} />
               <SumRow k="Renovierung" v={fmtEUR(r.reno)} />
               <SumRow k="Gesamtkosten" v={fmtEUR(r.gesamt)} bold />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 18, paddingBottom: 16, borderBottom: '1px solid rgba(38,37,30,0.08)' }}>
+            <div className="bs-calc-sumrow" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 18, paddingBottom: 16, borderBottom: '1px solid rgba(38,37,30,0.08)' }}>
               <SumRow k="Eigenkapital" v={fmtEUR(r.equity)} />
               <SumRow k="Darlehen" v={fmtEUR(r.loan)} />
               <SumRow k="Monatsrate" v={fmtEUR(-r.monthlyDebt)} />
               <SumRow k="Zins / Tilgung" v={`${String(inputs.rate).replace('.', ',')}% / ${String(inputs.amort).replace('.', ',')}%`} />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 18, paddingBottom: 16, borderBottom: '1px solid rgba(38,37,30,0.08)' }}>
+            <div className="bs-calc-sumrow" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 18, paddingBottom: 16, borderBottom: '1px solid rgba(38,37,30,0.08)' }}>
               <SumRow k="Kaufpreis / m²" v={r.wohnflaeche > 0 ? `${fmtEUR(r.pricePerSqm)}/m²` : '—'} />
               <SumRow k="Brutto-Mietrendite" v={r.price > 0 ? fmtPct(r.bruttoMietrendite) : '—'} />
               <SumRow k="Gesamtkosten / m²" v={r.wohnflaeche > 0 ? `${fmtEUR(r.totalCostPerSqm)}/m²` : '—'} />
               <span />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '150px 1fr 120px', rowGap: 12, columnGap: 14, alignItems: 'center' }}>
+            <div className="bs-calc-water" style={{ display: 'grid', gridTemplateColumns: '150px 1fr 120px', rowGap: 12, columnGap: 14, alignItems: 'center' }}>
               <WaterRow color="#1C1C1C" label="Effektive Miete" value={fmtEUR(r.effectiveRentMon)} width={1} />
               <WaterRow color="#1C1C1C" label="Laufende Kosten" value={fmtEUR(-r.totalOpMon)} width={r.effectiveRentMon > 0 ? r.totalOpMon / r.effectiveRentMon : 0} valueColor="#26251e" />
               <WaterRow color="#1C1C1C" label="Kapitaldienst" value={fmtEUR(-r.monthlyDebt)} width={r.effectiveRentMon > 0 ? r.monthlyDebt / r.effectiveRentMon : 0} valueColor="#26251e" />
@@ -1708,11 +1709,11 @@ export default function Calculator() {
           </section>
 
           {/* Charts */}
-          <section style={{ padding: '12px 16px', borderRadius: 12, background: '#ffffff', border: '1px solid #e5e5e5', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
-              <h3 style={{ margin: 0, font: '400 22px/1.3 var(--font-dm-sans), sans-serif', letterSpacing: -0.11, color: '#26251e' }}>
+          <section className="bs-calc-chart-card" style={{ padding: '12px 16px', borderRadius: 12, background: '#ffffff', border: '1px solid #e5e5e5', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div className="bs-calc-chart-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+              <h3 className="bs-calc-chart-title" style={{ margin: 0, font: '400 22px/1.3 var(--font-dm-sans), sans-serif', letterSpacing: -0.11, color: '#26251e' }}>
                 {termYr}-Jahres-Projektion{' '}
-                <span style={{ color: 'rgba(38,37,30,0.4)', fontSize: 14 }}>+ {projYrs - termYr}-Jahres-Projektion</span>
+                <span className="bs-calc-chart-subtitle" style={{ color: 'rgba(38,37,30,0.4)', fontSize: 14 }}>+ {projYrs - termYr}-Jahres-Projektion</span>
               </h3>
               <div style={{ display: 'inline-flex', padding: 3, borderRadius: 10, background: '#e8e8e8', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)' }}>
                 {([{ k: 'amort', label: 'Restschuld vs. Tilgung' }, { k: 'cashflow', label: 'Cashflow' }] as const).map((t) => (
@@ -1772,7 +1773,7 @@ export default function Calculator() {
           </section>
 
           {/* ── ACTION BUTTONS — full-width row below projection ── */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
+          <div className="bs-calc-actions" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
             <button
               onClick={onSave}
               style={{

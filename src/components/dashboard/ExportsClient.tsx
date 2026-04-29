@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import {
   loadExports,
@@ -130,7 +130,7 @@ export default function ExportsClient() {
 
   return (
     <>
-      <div style={{ padding: '36px 40px 60px' }}>
+      <div className="bs-exports-page" style={{ padding: '36px 40px 60px' }}>
         <header style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 24 }}>
           <h1 style={{ margin: 0, font: '700 28px/1.2 var(--font-dm-sans), sans-serif', letterSpacing: '-0.6px', color: '#0a0a0a' }}>
             Meine Exporte
@@ -151,7 +151,9 @@ export default function ExportsClient() {
               return (
                 <div
                   key={e.export_id}
+                  className="bs-export-row"
                   style={{
+                    position: 'relative',
                     display: 'grid',
                     gridTemplateColumns: '44px 1fr auto',
                     alignItems: 'center',
@@ -171,9 +173,9 @@ export default function ExportsClient() {
                     {formatIcon(e.format)}
                   </span>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
+                  <div className="bs-export-info" style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                      <span style={{ font: '600 14.5px/1.3 var(--font-dm-sans), sans-serif', color: '#0a0a0a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <span className="bs-export-filename" style={{ font: '600 14.5px/1.3 var(--font-dm-sans), sans-serif', color: '#0a0a0a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
                         {e.dateiname}
                       </span>
                       <span style={{
@@ -194,7 +196,7 @@ export default function ExportsClient() {
                     </span>
                   </div>
 
-                  <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                  <div className="bs-export-buttons hidden md:flex" style={{ gap: 6, flexShrink: 0 }}>
                     {e.daten && (
                       <button
                         type="button"
@@ -224,6 +226,15 @@ export default function ExportsClient() {
                       Löschen
                     </button>
                   </div>
+
+                  <ExportMenu
+                    canDownload={!!e.daten}
+                    onDownload={() => handleDownload(e)}
+                    onRegenerate={() => { void handleRegenerate(e) }}
+                    onDelete={() => handleDelete(e)}
+                    busy={busyId === e.export_id}
+                    dealMissing={!deal}
+                  />
                 </div>
               )
             })}
@@ -260,6 +271,94 @@ export default function ExportsClient() {
         </div>
       )}
     </>
+  )
+}
+
+function ExportMenu({
+  canDownload, onDownload, onRegenerate, onDelete, busy, dealMissing,
+}: {
+  canDownload: boolean
+  onDownload: () => void
+  onRegenerate: () => void
+  onDelete: () => void
+  busy: boolean
+  dealMissing: boolean
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const onDoc = (ev: MouseEvent) => {
+      if (ref.current && !ref.current.contains(ev.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onDoc)
+    return () => document.removeEventListener('mousedown', onDoc)
+  }, [open])
+
+  const item: React.CSSProperties = {
+    display: 'block', width: '100%', textAlign: 'left',
+    padding: '10px 14px', border: 'none', background: 'transparent',
+    font: '500 13.5px/1 var(--font-dm-sans), sans-serif',
+    color: '#0a0a0a', cursor: 'pointer', borderRadius: 6,
+  }
+
+  return (
+    <div ref={ref} className="bs-export-menu md:hidden" style={{ position: 'absolute', top: 8, right: 8 }}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-label="Aktionen"
+        aria-expanded={open}
+        style={{
+          width: 32, height: 32, padding: 0, borderRadius: 8,
+          border: '1px solid transparent', background: 'transparent',
+          cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          color: '#4a4a4a',
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = '#f5f5f3' }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="19" cy="12" r="2" /></svg>
+      </button>
+      {open && (
+        <div
+          role="menu"
+          style={{
+            position: 'absolute', top: 'calc(100% + 4px)', right: 0,
+            minWidth: 180, padding: 4,
+            background: '#ffffff', border: '1px solid #e5e5e5', borderRadius: 10,
+            boxShadow: '0 10px 28px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.04)',
+            zIndex: 30,
+          }}
+        >
+          {canDownload && (
+            <button type="button" style={item} onClick={() => { setOpen(false); onDownload() }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = '#f5f5f3' }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+            >
+              Herunterladen
+            </button>
+          )}
+          <button
+            type="button"
+            disabled={dealMissing || busy}
+            style={{ ...item, opacity: dealMissing || busy ? 0.5 : 1, cursor: dealMissing || busy ? 'default' : 'pointer' }}
+            onClick={() => { if (!dealMissing && !busy) { setOpen(false); onRegenerate() } }}
+            onMouseEnter={(e) => { if (!dealMissing && !busy) e.currentTarget.style.background = '#f5f5f3' }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+          >
+            {busy ? 'Wird erstellt…' : 'Erneut generieren'}
+          </button>
+          <button type="button" style={{ ...item, color: '#cf2d56' }} onClick={() => { setOpen(false); onDelete() }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(207,45,86,0.06)' }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+          >
+            Löschen
+          </button>
+        </div>
+      )}
+    </div>
   )
 }
 

@@ -71,6 +71,18 @@ export default function SettingsClient() {
         </p>
       </header>
 
+      {/* Mobile-only quick links to Nutzung & Abonnement (sidebar items missing on mobile) */}
+      <div className="bs-settings-mobile-links" style={{ display: 'none', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
+        <Link href="/dashboard/usage" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: 10, border: '1px solid #E6E6E4', background: '#ffffff', color: '#1C1C1C', font: '500 14px/1 var(--font-dm-sans), sans-serif', textDecoration: 'none' }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6F6F6F" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="20" x2="3" y2="10" /><line x1="9" y1="20" x2="9" y2="6" /><line x1="15" y1="20" x2="15" y2="13" /><line x1="21" y1="20" x2="21" y2="4" /></svg>
+          Nutzung
+        </Link>
+        <Link href="/dashboard/subscription" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: 10, border: '1px solid #E6E6E4', background: '#ffffff', color: '#1C1C1C', font: '500 14px/1 var(--font-dm-sans), sans-serif', textDecoration: 'none' }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6F6F6F" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2" /><line x1="2" y1="10" x2="22" y2="10" /></svg>
+          Abonnement
+        </Link>
+      </div>
+
       <div style={{ background: '#ffffff', borderRadius: 14, border: '1px solid #ececec', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
         {SECTIONS.map((s, i) => {
           const isOpen = open === s.key

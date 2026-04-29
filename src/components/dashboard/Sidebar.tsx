@@ -103,7 +103,7 @@ export default function Sidebar() {
   const initial = (displayName || user?.email || '?').trim().charAt(0).toUpperCase()
 
   return (
-    <aside style={{
+    <aside className="bs-dashboard-sidebar" style={{
       width: 240, flexShrink: 0,
       background: '#F9F8F6',
       borderRight: '1px solid #E7E5E1',

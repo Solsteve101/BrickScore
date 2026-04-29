@@ -12,9 +12,9 @@ const ROWS: { feature: string; bs: CellValue; excel: CellValue; other: CellValue
 ]
 
 const COLS = [
-  { key: 'bs',    label: 'BrickScore',        highlight: true  },
-  { key: 'excel', label: 'Excel / Sheets',    highlight: false },
-  { key: 'other', label: 'Andere Immo-Tools', highlight: false },
+  { key: 'bs',    label: 'BrickScore',        labelShort: 'BrickScore', highlight: true  },
+  { key: 'excel', label: 'Excel / Sheets',    labelShort: 'Excel',      highlight: false },
+  { key: 'other', label: 'Andere Immo-Tools', labelShort: 'Andere',     highlight: false },
 ] as const
 
 function Cell({ value, highlight }: { value: CellValue; highlight?: boolean }) {
@@ -73,15 +73,16 @@ export default function ComparisonTable() {
           boxShadow: '0 4px 16px rgba(0,0,0,0.06), 0 20px 56px rgba(0,0,0,0.09)',
         }}
       >
-       <div style={{ minWidth: 720 }}>
+       <div className="bs-compare-table-inner" style={{ minWidth: 720 }}>
         {/* Header */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 160px 180px 190px', background: '#fafafa', borderBottom: '1px solid #efefef' }}>
-          <div style={{ padding: '20px 28px', font: '500 11px/1 var(--font-dm-sans)', color: '#aaaaaa', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+        <div className="bs-compare-row" style={{ display: 'grid', gridTemplateColumns: '1fr 160px 180px 190px', background: '#fafafa', borderBottom: '1px solid #efefef' }}>
+          <div className="bs-compare-feature-cell" style={{ padding: '20px 28px', font: '500 11px/1 var(--font-dm-sans)', color: '#aaaaaa', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
             Feature
           </div>
           {COLS.map((col) => (
             <div
               key={col.key}
+              className="bs-compare-header-cell"
               style={{
                 padding: '20px 0',
                 textAlign: 'center',
@@ -90,7 +91,8 @@ export default function ComparisonTable() {
                 background: col.highlight ? 'rgba(184,146,26,0.07)' : 'transparent',
               }}
             >
-              {col.label}
+              <span className="bs-compare-label-long">{col.label}</span>
+              <span className="bs-compare-label-short">{col.labelShort}</span>
             </div>
           ))}
         </div>
@@ -99,6 +101,7 @@ export default function ComparisonTable() {
         {ROWS.map((row, i) => (
           <div
             key={row.feature}
+            className="bs-compare-row"
             style={{
               display: 'grid',
               gridTemplateColumns: '1fr 160px 180px 190px',
@@ -106,12 +109,13 @@ export default function ComparisonTable() {
               background: '#ffffff',
             }}
           >
-            <div style={{ padding: '22px 28px', font: '400 15px/1.4 var(--font-dm-sans)', color: '#3a3a3a' }}>
+            <div className="bs-compare-feature-cell" style={{ padding: '22px 28px', font: '400 15px/1.4 var(--font-dm-sans)', color: '#3a3a3a' }}>
               {row.feature}
             </div>
             {COLS.map((col) => (
               <div
                 key={col.key}
+                className="bs-compare-icon-cell"
                 style={{
                   padding: '22px 0',
                   display: 'flex',

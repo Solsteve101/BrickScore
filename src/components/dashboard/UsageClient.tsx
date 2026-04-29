@@ -87,7 +87,7 @@ export default function UsageClient() {
   const barColor = atLimit ? '#cf2d56' : halfPlus ? '#c08532' : '#1f8a65'
 
   return (
-    <div style={{ padding: '36px 40px 60px' }}>
+    <div className="bs-usage-page" style={{ padding: '36px 40px 60px' }}>
       <header style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 24 }}>
         <h1 style={{ margin: 0, font: '700 28px/1.2 var(--font-dm-sans), sans-serif', letterSpacing: '-0.6px', color: '#0a0a0a' }}>
           Nutzung
@@ -171,6 +171,7 @@ export default function UsageClient() {
                   <button
                     type="button"
                     onClick={() => setExpandedIdx(open ? null : i)}
+                    className="bs-usage-row"
                     style={{
                       display: 'grid', gridTemplateColumns: 'auto 1fr auto auto auto',
                       alignItems: 'center', gap: 12,
@@ -183,22 +184,22 @@ export default function UsageClient() {
                     onMouseEnter={(e) => { if (!open) e.currentTarget.style.background = '#fafaf8' }}
                     onMouseLeave={(e) => { if (!open) e.currentTarget.style.background = 'transparent' }}
                   >
-                    <span style={{ font: '500 16px/1 var(--font-dm-sans), sans-serif', flexShrink: 0, width: 22, textAlign: 'center' }} aria-hidden="true">
+                    <span className="bs-usage-icon" style={{ font: '500 16px/1 var(--font-dm-sans), sans-serif', flexShrink: 0, width: 22, textAlign: 'center' }} aria-hidden="true">
                       {ACTION_ICONS[h.action]}
                     </span>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
-                      <span style={{ font: '500 13px/1.3 var(--font-dm-sans), sans-serif', color: '#0a0a0a' }}>
+                    <div className="bs-usage-label" style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+                      <span style={{ font: '500 13px/1.3 var(--font-dm-sans), sans-serif', color: '#0a0a0a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>
                         {actionLabel(h)}
                         {detail ? <span style={{ color: '#9a9a9a', fontWeight: 400 }}> — {detail}</span> : null}
                       </span>
                     </div>
-                    <span style={{ font: '500 13px/1 var(--font-jetbrains-mono), monospace', color: '#cf2d56', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                    <span className="bs-usage-tokens" style={{ font: '500 13px/1 var(--font-jetbrains-mono), monospace', color: '#cf2d56', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
                       {h.tokens} {tokenLabel}
                     </span>
-                    <span style={{ font: '400 11.5px/1 var(--font-dm-sans), sans-serif', color: '#9a9a9a', whiteSpace: 'nowrap', minWidth: 110, textAlign: 'right' }}>
+                    <span className="bs-usage-time" style={{ font: '400 11.5px/1 var(--font-dm-sans), sans-serif', color: '#9a9a9a', whiteSpace: 'nowrap', minWidth: 110, textAlign: 'right' }}>
                       {fmtTimestamp(h.date)}
                     </span>
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ color: '#9a9a9a', flexShrink: 0, transform: open ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 150ms ease' }}>
+                    <svg className="bs-usage-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ color: '#9a9a9a', flexShrink: 0, transform: open ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 150ms ease' }}>
                       <path d="M2.5 4.5L6 8l3.5-3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   </button>
