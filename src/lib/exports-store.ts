@@ -9,83 +9,82 @@ export interface SavedExport {
   daten: string | null // base64 data URL, or null when file was too large to persist
 }
 
-const STORAGE_KEY = 'brickscore_exports'
-const MAX_BASE64_BYTES = 2 * 1024 * 1024
+// Cap the payload we send over the network. Postgres TEXT can hold much more,
+// but a 5MB POST body is a reasonable browser/server safety limit.
+const MAX_PERSIST_BYTES = 5 * 1024 * 1024
 
-function safeParse(raw: string | null): SavedExport[] {
-  if (!raw) return []
+export async function loadExports(): Promise<SavedExport[]> {
+  if (typeof window === 'undefined') return []
   try {
-    const parsed = JSON.parse(raw) as unknown
-    return Array.isArray(parsed) ? (parsed as SavedExport[]) : []
+    const res = await fetch('/api/exports', { cache: 'no-store' })
+    if (!res.ok) return []
+    return (await res.json()) as SavedExport[]
   } catch {
     return []
   }
 }
 
-export function loadExports(): SavedExport[] {
+export async function loadExportsForDeal(dealId: string): Promise<SavedExport[]> {
   if (typeof window === 'undefined') return []
-  return safeParse(window.localStorage.getItem(STORAGE_KEY))
+  try {
+    const res = await fetch(`/api/exports?dealId=${encodeURIComponent(dealId)}`, { cache: 'no-store' })
+    if (!res.ok) return []
+    return (await res.json()) as SavedExport[]
+  } catch {
+    return []
+  }
 }
 
-export function loadExportsForDeal(dealId: string): SavedExport[] {
-  return loadExports()
-    .filter((e) => e.deal_id === dealId)
-    .sort((a, b) => new Date(b.datum).getTime() - new Date(a.datum).getTime())
-}
-
-export function countExportsByDeal(): Record<string, number> {
+export async function countExportsByDeal(): Promise<Record<string, number>> {
+  const all = await loadExports()
   const out: Record<string, number> = {}
-  for (const e of loadExports()) {
+  for (const e of all) {
+    if (!e.deal_id) continue
     out[e.deal_id] = (out[e.deal_id] ?? 0) + 1
   }
   return out
 }
 
-export function saveExport(entry: Omit<SavedExport, 'export_id' | 'datum'> & { datum?: string; export_id?: string }): SavedExport {
-  if (typeof window === 'undefined') {
-    return { ...entry, export_id: '', datum: new Date().toISOString() } as SavedExport
-  }
-  const all = loadExports()
-  const created: SavedExport = {
-    export_id: entry.export_id ?? makeId(),
-    deal_id: entry.deal_id,
-    format: entry.format,
-    dateiname: entry.dateiname,
-    datum: entry.datum ?? new Date().toISOString(),
-    daten: entry.daten,
-  }
-  all.unshift(created)
+export async function saveExport(entry: {
+  deal_id: string | null
+  format: ExportFormatKey
+  dateiname: string
+  daten: string | null
+}): Promise<SavedExport | null> {
+  if (typeof window === 'undefined') return null
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(all))
+    const res = await fetch('/api/exports', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(entry),
+    })
+    if (!res.ok) return null
+    return (await res.json()) as SavedExport
   } catch {
-    // Quota exceeded — drop the oldest export with payload, retry
-    const trimmed = trimToFit(all)
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed))
-    } catch {
-      // Last resort: store metadata only for the new entry
-      created.daten = null
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify([created, ...all.filter((e) => e.export_id !== created.export_id).map((e) => ({ ...e, daten: null }))]))
-    }
+    return null
   }
-  return created
 }
 
-export function deleteExport(exportId: string): void {
+export async function deleteExport(exportId: string): Promise<void> {
   if (typeof window === 'undefined') return
-  const all = loadExports().filter((e) => e.export_id !== exportId)
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(all))
+  try {
+    await fetch(`/api/exports/${encodeURIComponent(exportId)}`, { method: 'DELETE' })
+  } catch {
+    /* ignore */
+  }
 }
 
-export function deleteExportsForDeal(dealId: string): void {
+export async function deleteExportsForDeal(dealId: string): Promise<void> {
   if (typeof window === 'undefined') return
-  const all = loadExports().filter((e) => e.deal_id !== dealId)
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(all))
+  try {
+    await fetch(`/api/exports?dealId=${encodeURIComponent(dealId)}`, { method: 'DELETE' })
+  } catch {
+    /* ignore */
+  }
 }
 
 export function isWithinPersistLimit(byteLength: number): boolean {
-  // base64 inflates raw bytes ~33%, leave headroom
-  return byteLength <= MAX_BASE64_BYTES
+  return byteLength <= MAX_PERSIST_BYTES
 }
 
 export async function blobToBase64(blob: Blob): Promise<string> {
@@ -115,27 +114,4 @@ export function triggerDownload(blob: Blob, filename: string): void {
   a.click()
   document.body.removeChild(a)
   setTimeout(() => URL.revokeObjectURL(url), 0)
-}
-
-function makeId(): string {
-  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID()
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
-}
-
-function trimToFit(all: SavedExport[]): SavedExport[] {
-  // Drop payload from the oldest persisted exports (keep metadata) until under a heuristic ceiling
-  const sorted = [...all].sort((a, b) => new Date(b.datum).getTime() - new Date(a.datum).getTime())
-  for (let i = sorted.length - 1; i >= 0; i--) {
-    if (sorted[i].daten) {
-      sorted[i] = { ...sorted[i], daten: null }
-      try {
-        // Test fit
-        JSON.stringify(sorted)
-        return sorted
-      } catch {
-        // ignore
-      }
-    }
-  }
-  return sorted
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import Sidebar from './Sidebar'
@@ -9,6 +9,12 @@ import { MobileBottomNav } from '@/components/mobile-bottom-nav'
 export default function DashboardShell({ children }: { children: ReactNode }) {
   const router = useRouter()
   const { status } = useSession()
+  // Once we've been authenticated, stay mounted across transient 'loading'
+  // states (e.g. while useSession().update() refetches the session).
+  // Otherwise the entire subtree unmounts and any local state — open
+  // accordions, form inputs, modals — gets reset.
+  const hasBeenAuthed = useRef(false)
+  if (status === 'authenticated') hasBeenAuthed.current = true
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -16,7 +22,10 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
     }
   }, [status, router])
 
-  if (status === 'loading' || status === 'unauthenticated') {
+  const showSpinner =
+    status === 'unauthenticated' ||
+    (status === 'loading' && !hasBeenAuthed.current)
+  if (showSpinner) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fafafa' }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, color: '#7a7a7a', font: '500 13.5px/1 var(--font-dm-sans), sans-serif' }}>

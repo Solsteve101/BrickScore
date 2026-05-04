@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
 import { BrickScoreLogo } from '@/components/ui/brickscore-logo'
 import { MobileNav } from '@/components/mobile-nav'
+import { getCachedUserAvatar } from '@/lib/avatar-cache'
 
 const NAV_LINKS = [
   ['Dashboard', '/dashboard/new'],
@@ -103,7 +104,7 @@ export default function Header() {
           ) : (
             <div className="hidden md:flex items-center" style={{ gap: 20 }}>
               <Link
-                href="/login?callbackUrl=/dashboard"
+                href="/login?callbackUrl=/"
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -155,6 +156,14 @@ export default function Header() {
 function UserMenu({ name, email, image }: { name: string; email: string; image: string | null }) {
   const [open, setOpen] = useState(false)
   const wrapRef = useRef<HTMLDivElement>(null)
+  const [avatar, setAvatar] = useState<string | null>(image)
+
+  useEffect(() => {
+    if (image) { setAvatar(image); return }
+    let cancelled = false
+    void getCachedUserAvatar().then((img) => { if (!cancelled) setAvatar(img) })
+    return () => { cancelled = true }
+  }, [image])
 
   useEffect(() => {
     if (!open) return
@@ -186,11 +195,11 @@ function UserMenu({ name, email, image }: { name: string; email: string; image: 
       >
         <span style={{
           width: 30, height: 30, borderRadius: '50%',
-          background: image ? `url(${image}) center/cover no-repeat` : 'linear-gradient(135deg, #3d3d3d, #141414)',
+          background: avatar ? `url(${avatar}) center/cover no-repeat` : 'linear-gradient(135deg, #3d3d3d, #141414)',
           color: '#ffffff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           font: '600 12.5px/1 var(--font-dm-sans), sans-serif', letterSpacing: 0,
         }}>
-          {!image && initial}
+          {!avatar && initial}
         </span>
       </button>
 

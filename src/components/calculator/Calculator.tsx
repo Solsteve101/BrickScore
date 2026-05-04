@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
+import Link from 'next/link'
 import {
   type CalcInputs,
   type CalcResult,
@@ -624,8 +625,9 @@ function ListingImport({ url, onUrlChange, onFill }: {
   onUrlChange: (url: string) => void
   onFill: (data: ListingData) => void
 }) {
-  const { status, data, error, analyzeListing, analyzeText, reset } = useListingAnalysis()
+  const { status, data, error, insufficientTokens, dismissInsufficient, analyzeListing, analyzeText, reset } = useListingAnalysis()
   const [fallbackText, setFallbackText] = useState('')
+  const [manualImportOpen, setManualImportOpen] = useState(false)
   const [loadingText, setLoadingText] = useState('Analysiere Inserat…')
   const loadingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -663,6 +665,7 @@ function ListingImport({ url, onUrlChange, onFill }: {
     onUrlChange('')
     reset()
     setFallbackText('')
+    setManualImportOpen(false)
   }
 
   const handleUrlChange = (val: string) => {
@@ -676,6 +679,7 @@ function ListingImport({ url, onUrlChange, onFill }: {
     url                  ? 'rgba(38,37,30,0.18)'   : 'rgba(38,37,30,0.1)'
 
   return (
+    <>
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
@@ -786,9 +790,9 @@ function ListingImport({ url, onUrlChange, onFill }: {
         </div>
       )}
 
-      {status === 'error' && (
+      {(status === 'error' || manualImportOpen) && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {error && (
+          {status === 'error' && error && (
             <p style={{ margin: 0, font: '400 11.5px/1.4 var(--font-dm-sans), sans-serif', color: '#cf2d56' }}>
               {error}
             </p>
@@ -832,6 +836,128 @@ function ListingImport({ url, onUrlChange, onFill }: {
           </button>
         </div>
       )}
+    </div>
+
+    {insufficientTokens && (
+      <InsufficientTokensModal
+        info={insufficientTokens}
+        onClose={dismissInsufficient}
+        onUseManual={() => {
+          dismissInsufficient()
+          setManualImportOpen(true)
+        }}
+      />
+    )}
+    </>
+  )
+}
+
+function InsufficientTokensModal({
+  info,
+  onClose,
+  onUseManual,
+}: {
+  info: { action: 'link_analyse' | 'text_analyse' | 'manual_session' | 'export'; required: number; remaining: number }
+  onClose: () => void
+  onUseManual: () => void
+}) {
+  const TEXT_COST = 3
+  const canUseManual = info.action === 'link_analyse' && info.remaining >= TEXT_COST
+
+  const headline = 'Nutzungslimit erreicht'
+  const body = canUseManual
+    ? 'Du hast dein wöchentliches Limit für Link-Analysen erreicht. Du kannst noch eine manuelle Texteingabe verwenden oder deinen Plan upgraden.'
+    : 'Du hast dein wöchentliches Analyselimit erreicht. Erneuert sich am Montag oder jetzt upgraden.'
+
+  return (
+    <div
+      onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 130,
+        background: 'rgba(0,0,0,0.5)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 20,
+      }}
+    >
+      <div style={{
+        width: '100%', maxWidth: 460,
+        background: '#ffffff', borderRadius: 16,
+        padding: '32px 28px 24px',
+        boxShadow: '0 24px 56px rgba(0,0,0,0.22), 0 4px 12px rgba(0,0,0,0.08)',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14,
+        textAlign: 'center',
+      }}>
+        <span style={{
+          width: 56, height: 56, borderRadius: 14,
+          background: 'rgba(192,133,50,0.10)', color: '#c08532',
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          marginBottom: 2,
+        }}>
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+        </span>
+
+        <h3 style={{ margin: 0, font: '700 20px/1.25 var(--font-dm-sans), sans-serif', color: '#0a0a0a', letterSpacing: '-0.3px' }}>
+          {headline}
+        </h3>
+
+        <p style={{ margin: 0, font: '400 14px/1.55 var(--font-dm-sans), sans-serif', color: '#5a5a5a', maxWidth: 360 }}>
+          {body}
+        </p>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%', marginTop: 14 }}>
+          <Link
+            href="/preise"
+            onClick={onClose}
+            style={{
+              width: '100%',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              padding: '12px 24px', borderRadius: 10,
+              background: '#1C1C1C', color: '#FFFFFF', textDecoration: 'none',
+              font: '500 14px/1 var(--font-dm-sans), sans-serif',
+              border: '1px solid #1C1C1C',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.18)',
+            }}
+          >
+            Zu den Preisen
+          </Link>
+
+          {canUseManual && (
+            <button
+              type="button"
+              onClick={onUseManual}
+              style={{
+                width: '100%',
+                padding: '11px 24px', borderRadius: 10,
+                background: '#FFFFFF', color: '#1C1C1C',
+                border: '1px solid #D6D6D4',
+                font: '500 14px/1 var(--font-dm-sans), sans-serif',
+                cursor: 'pointer',
+              }}
+            >
+              Text manuell einfügen
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              width: '100%',
+              padding: '11px 24px', borderRadius: 10,
+              background: 'transparent', color: '#6a6a6a',
+              border: '1px solid transparent',
+              font: '500 14px/1 var(--font-dm-sans), sans-serif',
+              cursor: 'pointer',
+            }}
+          >
+            Schließen
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
@@ -1196,9 +1322,11 @@ export default function Calculator() {
     if (!sessionStarted.current) {
       // Manual session — charge 1 token on the first edit (skip if a deal was loaded or analysis happened)
       sessionStarted.current = true
-      if (hasTokens('manual_session')) {
-        spendTokens('manual_session', 'Manueller Deal')
-      }
+      void (async () => {
+        if (await hasTokens('manual_session')) {
+          await spendTokens('manual_session', 'Manueller Deal')
+        }
+      })()
     }
     setInputs((s) => ({ ...s, [k]: v }))
   }, [])
@@ -1209,17 +1337,21 @@ export default function Calculator() {
     const params = new URLSearchParams(window.location.search)
     const id = params.get('deal')
     if (!id) return
-    const found = findDealById(id)
-    if (!found) return
-    sessionStarted.current = true // loading a deal does not charge a manual session
-    setInputs(found.inputs)
-    setRentEstimated(false)
-    setCurrentDealId(found.id)
-    setLastSavedTitle(found.titel)
-    // Clean URL so a refresh doesn't keep re-loading
-    const url = new URL(window.location.href)
-    url.searchParams.delete('deal')
-    window.history.replaceState({}, '', url.toString())
+    let cancelled = false
+    void (async () => {
+      const found = await findDealById(id)
+      if (cancelled || !found) return
+      sessionStarted.current = true // loading a deal does not charge a manual session
+      setInputs(found.inputs)
+      setRentEstimated(false)
+      setCurrentDealId(found.id)
+      setLastSavedTitle(found.titel)
+      // Clean URL so a refresh doesn't keep re-loading
+      const url = new URL(window.location.href)
+      url.searchParams.delete('deal')
+      window.history.replaceState({}, '', url.toString())
+    })()
+    return () => { cancelled = true }
   }, [])
 
   const r = calc(inputs)
@@ -1305,9 +1437,9 @@ export default function Calculator() {
   }
   const onExport = () => setExportOpen(true)
 
-  const handleUpdateExisting = useCallback(() => {
+  const handleUpdateExisting = useCallback(async () => {
     if (!currentDealId) return
-    const updated = updateDeal(currentDealId, {
+    const updated = await updateDeal(currentDealId, {
       datum: new Date().toISOString(),
       inputs,
       kpis: buildKpis(r, score),
@@ -1346,7 +1478,7 @@ export default function Calculator() {
     return res
   }, [inputs, r, rows, termYr, score, extLabel, lastSavedTitle])
 
-  const handleSaveDeal = useCallback((data: { titel: string; link: string; notizen: string; bilder: string[] }) => {
+  const handleSaveDeal = useCallback(async (data: { titel: string; link: string; notizen: string; bilder: string[] }) => {
     const deal: SavedDeal = {
       id: (typeof crypto !== 'undefined' && 'randomUUID' in crypto) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
       titel: data.titel,
@@ -1357,7 +1489,11 @@ export default function Calculator() {
       inputs,
       kpis: buildKpis(r, score),
     }
-    persistDeal(deal)
+    const saved = await persistDeal(deal)
+    if (!saved) {
+      pushToast({ variant: 'error', message: 'Deal konnte nicht gespeichert werden.' })
+      return
+    }
     setLastSavedTitle(data.titel)
     setCurrentDealId(deal.id)
     setSaveOpen(false)

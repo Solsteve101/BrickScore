@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect, type ReactNode } from 'react'
+import { useState, useEffect, useRef, type ReactNode } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { signOut, useSession } from 'next-auth/react'
 import { pushToast } from '@/lib/toast'
+import { getCachedUserAvatar, setCachedUserAvatar } from '@/lib/avatar-cache'
 
 const COMING_SOON_MSG = 'Diese Funktion wird bald verfügbar sein.'
 
@@ -132,7 +133,6 @@ export default function SettingsClient() {
                     />
                   )}
                   {s.key === 'delete' && <DeleteSection onConfirmed={async () => {
-                    try { ['brickscore_deals_v1', 'brickscore_exports', 'brickscore_usage'].forEach((k) => window.localStorage.removeItem(k)) } catch { /* ignore */ }
                     await signOut({ redirect: false })
                     router.replace('/')
                     router.refresh()
@@ -147,28 +147,145 @@ export default function SettingsClient() {
   )
 }
 
-function ProfileSection({ user, update: _update }: { user: ReturnType<typeof useSession>['data'] extends infer S ? (S extends { user: infer U } ? U : null) : null; update: ReturnType<typeof useSession>['update'] }) {
+function ProfileSection({ user, update }: { user: ReturnType<typeof useSession>['data'] extends infer S ? (S extends { user: infer U } ? U : null) : null; update: ReturnType<typeof useSession>['update'] }) {
   const originalEmail = user?.email ?? ''
   const [name, setName] = useState(user?.name ?? '')
   const [emailValue, setEmailValue] = useState(originalEmail)
   const [pwModalOpen, setPwModalOpen] = useState(false)
   const [pwInput, setPwInput] = useState('')
   const [busy, setBusy] = useState(false)
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+  const [avatarBusy, setAvatarBusy] = useState(false)
+  const [cropSrc, setCropSrc] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const isGoogle = user?.provider === 'google'
   const initial = (name || originalEmail || '?').trim().charAt(0).toUpperCase()
+  const avatarSrc = avatarPreview ?? user?.image ?? null
 
   useEffect(() => { if (user?.name) setName(user.name) }, [user?.name])
   useEffect(() => { if (user?.email) setEmailValue(user.email) }, [user?.email])
 
-  const emailChanged = emailValue.trim().toLowerCase() !== originalEmail.toLowerCase() && emailValue.trim().length > 0
+  // Hydrate avatar on mount: session.user.image only carries short URLs
+  // (Google CDN). Uploaded base64 avatars are fetched lazily here.
+  useEffect(() => {
+    if (user?.image) return
+    let cancelled = false
+    void getCachedUserAvatar().then((img) => {
+      if (!cancelled && img) setAvatarPreview(img)
+    })
+    return () => { cancelled = true }
+  }, [user?.image])
 
-  const handleSave = () => {
-    if (emailChanged && !isGoogle) {
-      setPwInput('')
-      setPwModalOpen(true)
+  const onAvatarPick = () => {
+    if (avatarBusy) return
+    fileInputRef.current?.click()
+  }
+
+  const onAvatarSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      pushToast({ variant: 'error', message: 'Bitte eine Bilddatei auswählen.' })
       return
     }
-    pushToast({ variant: 'info', message: COMING_SOON_MSG })
+    if (file.size > 6 * 1024 * 1024) {
+      pushToast({ variant: 'error', message: 'Bild ist zu groß (max. 6 MB vor Zuschnitt).' })
+      return
+    }
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(String(reader.result))
+        reader.onerror = () => reject(new Error('read_failed'))
+        reader.readAsDataURL(file)
+      })
+      setCropSrc(dataUrl)
+    } catch (err) {
+      pushToast({ variant: 'error', message: err instanceof Error ? err.message : 'Bild konnte nicht gelesen werden.' })
+    }
+  }
+
+  const handleCropConfirm = async (croppedDataUrl: string) => {
+    setAvatarBusy(true)
+    try {
+      const res = await fetch('/api/user/avatar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: croppedDataUrl }),
+      })
+      const json = await res.json().catch(() => ({})) as { ok?: boolean; image?: string; message?: string }
+      if (!res.ok || !json.ok) {
+        pushToast({ variant: 'error', message: json.message ?? 'Profilbild konnte nicht gespeichert werden.' })
+        return
+      }
+      const finalUrl = json.image ?? croppedDataUrl
+      setAvatarPreview(finalUrl)
+      setCachedUserAvatar(finalUrl)
+      setCropSrc(null)
+      await update?.({ image: finalUrl })
+      pushToast({ variant: 'success', message: 'Profilbild aktualisiert.' })
+    } catch (err) {
+      pushToast({ variant: 'error', message: err instanceof Error ? err.message : 'Profilbild konnte nicht gespeichert werden.' })
+    } finally {
+      setAvatarBusy(false)
+    }
+  }
+
+  const removeAvatar = async () => {
+    if (avatarBusy) return
+    setAvatarBusy(true)
+    try {
+      const res = await fetch('/api/user/avatar', { method: 'DELETE' })
+      if (!res.ok) {
+        pushToast({ variant: 'error', message: 'Profilbild konnte nicht entfernt werden.' })
+        return
+      }
+      setAvatarPreview(null)
+      setCachedUserAvatar(null)
+      await update?.({ image: null })
+      pushToast({ variant: 'success', message: 'Profilbild entfernt.' })
+    } catch {
+      pushToast({ variant: 'error', message: 'Profilbild konnte nicht entfernt werden.' })
+    } finally {
+      setAvatarBusy(false)
+    }
+  }
+
+  const emailChanged = emailValue.trim().toLowerCase() !== originalEmail.toLowerCase() && emailValue.trim().length > 0
+
+  const onNameBlur = async () => {
+    const trimmed = name.trim()
+    if (!trimmed || trimmed === (user?.name ?? '')) return
+    try {
+      const res = await fetch('/api/auth/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: trimmed }),
+      })
+      const json = await res.json().catch(() => ({})) as { ok?: boolean; message?: string }
+      if (!res.ok || json.ok === false) {
+        pushToast({ variant: 'error', message: json.message ?? 'Name konnte nicht gespeichert werden.' })
+        return
+      }
+      await update?.({ name: trimmed })
+      pushToast({ variant: 'success', message: 'Name aktualisiert.' })
+    } catch (e) {
+      pushToast({ variant: 'error', message: e instanceof Error ? e.message : 'Name konnte nicht gespeichert werden.' })
+    }
+  }
+
+  const onEmailBlur = () => {
+    if (emailChanged && !isGoogle && !pwModalOpen) {
+      setPwInput('')
+      setPwModalOpen(true)
+    }
+  }
+
+  const cancelEmailChange = () => {
+    setPwModalOpen(false)
+    setPwInput('')
+    setEmailValue(originalEmail)
   }
 
   const submitEmailChange = async () => {
@@ -196,25 +313,77 @@ function ProfileSection({ user, update: _update }: { user: ReturnType<typeof use
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-        <span style={{
-          width: 56, height: 56, minWidth: 56, minHeight: 56, flexShrink: 0,
-          aspectRatio: '1 / 1', borderRadius: '50%',
-          background: user?.image ? `url(${user.image}) center/cover no-repeat` : 'linear-gradient(135deg, #3d3d3d, #141414)',
-          color: '#ffffff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-          font: '600 22px/1 var(--font-dm-sans), sans-serif',
-        }}>
-          {!user?.image && initial}
-        </span>
+        <button
+          type="button"
+          onClick={onAvatarPick}
+          disabled={avatarBusy}
+          aria-label="Profilbild ändern"
+          style={{
+            position: 'relative', width: 56, height: 56, minWidth: 56, minHeight: 56,
+            flexShrink: 0, padding: 0, borderRadius: '50%', border: 'none',
+            background: avatarSrc ? `url(${avatarSrc}) center/cover no-repeat` : 'linear-gradient(135deg, #3d3d3d, #141414)',
+            color: '#ffffff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            font: '600 22px/1 var(--font-dm-sans), sans-serif',
+            cursor: avatarBusy ? 'wait' : 'pointer',
+            opacity: avatarBusy ? 0.7 : 1,
+            transition: 'opacity 150ms ease',
+          }}
+        >
+          {!avatarSrc && initial}
+          <span aria-hidden="true" style={{
+            position: 'absolute', right: -2, bottom: -2,
+            width: 24, height: 24, borderRadius: '50%',
+            background: '#FFFFFF', color: '#6F6F6F',
+            border: '1px solid #D6D6D4',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
+          }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="2" x2="22" y2="6" />
+              <path d="M7.5 20.5 19 9l-4-4L3.5 16.5 2 22z" />
+            </svg>
+          </span>
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={(e) => { void onAvatarSelected(e) }}
+          style={{ display: 'none' }}
+        />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <span style={labelStyle}>Profilbild</span>
           <span style={{ font: '400 12.5px/1.4 var(--font-dm-sans), sans-serif', color: '#7a7a7a' }}>
-            Wird automatisch aus deinen Initialen generiert.
+            Klicke um ein Profilbild hochzuladen.
           </span>
+          {avatarSrc && (
+            <button
+              type="button"
+              onClick={() => { void removeAvatar() }}
+              disabled={avatarBusy}
+              style={{
+                alignSelf: 'flex-start', marginTop: 4, padding: 0,
+                background: 'transparent', border: 'none',
+                font: '500 12.5px/1.4 var(--font-dm-sans), sans-serif',
+                color: '#cf2d56',
+                cursor: avatarBusy ? 'wait' : 'pointer',
+                textDecoration: 'underline',
+              }}
+            >
+              Profilbild entfernen
+            </button>
+          )}
         </div>
       </div>
 
       <Field label="Name">
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Dein Name" style={inputStyle} />
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onBlur={() => { void onNameBlur() }}
+          placeholder="Dein Name"
+          style={inputStyle}
+        />
       </Field>
 
       <Field label="E-Mail">
@@ -224,24 +393,24 @@ function ProfileSection({ user, update: _update }: { user: ReturnType<typeof use
             <span style={hintStyle}>Verknüpft mit Google.</span>
           </>
         ) : (
-          <input
-            type="email"
-            value={emailValue}
-            onChange={(e) => setEmailValue(e.target.value)}
-            placeholder="deine@email.de"
-            style={inputStyle}
-            autoComplete="email"
-          />
+          <>
+            <input
+              type="email"
+              value={emailValue}
+              onChange={(e) => setEmailValue(e.target.value)}
+              onBlur={onEmailBlur}
+              placeholder="deine@email.de"
+              style={inputStyle}
+              autoComplete="email"
+            />
+            <span style={hintStyle}>Wird automatisch gespeichert. Bei E-Mail-Änderung folgt eine Passwort-Bestätigung.</span>
+          </>
         )}
       </Field>
 
-      <button type="button" onClick={handleSave} disabled={busy} style={primaryBtn(busy)}>
-        {busy ? 'Speichern…' : 'Profil speichern'}
-      </button>
-
       {pwModalOpen && (
         <div
-          onMouseDown={(e) => { if (e.target === e.currentTarget && !busy) setPwModalOpen(false) }}
+          onMouseDown={(e) => { if (e.target === e.currentTarget && !busy) cancelEmailChange() }}
           style={{ position: 'fixed', inset: 0, zIndex: 110, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
         >
           <div style={{ width: '100%', maxWidth: 440, background: '#ffffff', borderRadius: 12, padding: '22px 24px 20px', boxShadow: '0 24px 48px rgba(0,0,0,0.25)', display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -263,7 +432,7 @@ function ProfileSection({ user, update: _update }: { user: ReturnType<typeof use
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 4 }}>
               <button
                 type="button"
-                onClick={() => { if (!busy) setPwModalOpen(false) }}
+                onClick={() => { if (!busy) cancelEmailChange() }}
                 disabled={busy}
                 style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '8px 16px', borderRadius: 10, background: '#FFFFFF', border: '1px solid #D6D6D4', font: '500 14px/1 var(--font-dm-sans), Inter, sans-serif', color: '#1C1C1C', cursor: busy ? 'not-allowed' : 'pointer', transition: 'all 0.2s ease' }}
               >
@@ -291,6 +460,188 @@ function ProfileSection({ user, update: _update }: { user: ReturnType<typeof use
           </div>
         </div>
       )}
+
+      {cropSrc && (
+        <AvatarCropModal
+          src={cropSrc}
+          busy={avatarBusy}
+          onCancel={() => { if (!avatarBusy) setCropSrc(null) }}
+          onConfirm={(dataUrl) => { void handleCropConfirm(dataUrl) }}
+        />
+      )}
+    </div>
+  )
+}
+
+function AvatarCropModal({ src, busy, onCancel, onConfirm }: {
+  src: string
+  busy: boolean
+  onCancel: () => void
+  onConfirm: (dataUrl: string) => void
+}) {
+  const VIEW = 280
+  const OUT = 200
+  // Load the image via JS Image instance — `<img onLoad>` can miss the load
+  // event for data URLs because they decode synchronously, before React
+  // attaches the handler. We capture dimensions here and reuse the same
+  // Image object for canvas.drawImage() at confirm time.
+  const [loadedImg, setLoadedImg] = useState<HTMLImageElement | null>(null)
+  const [offset, setOffset] = useState({ x: 0, y: 0 })
+  const [dragging, setDragging] = useState(false)
+
+  useEffect(() => {
+    setLoadedImg(null)
+    setOffset({ x: 0, y: 0 })
+    const img = new Image()
+    img.onload = () => setLoadedImg(img)
+    img.onerror = () => pushToast({ variant: 'error', message: 'Bild konnte nicht geladen werden.' })
+    img.src = src
+  }, [src])
+
+  const imgDims = loadedImg ? { w: loadedImg.naturalWidth, h: loadedImg.naturalHeight } : null
+  const effectiveScale = imgDims ? Math.max(VIEW / imgDims.w, VIEW / imgDims.h) : 1
+  const dispW = imgDims ? imgDims.w * effectiveScale : 0
+  const dispH = imgDims ? imgDims.h * effectiveScale : 0
+
+  const clampOffset = (x: number, y: number, dw: number, dh: number) => {
+    const maxX = Math.max(0, (dw - VIEW) / 2)
+    const maxY = Math.max(0, (dh - VIEW) / 2)
+    return {
+      x: Math.max(-maxX, Math.min(maxX, x)),
+      y: Math.max(-maxY, Math.min(maxY, y)),
+    }
+  }
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    if (!imgDims) return
+    e.preventDefault()
+    setDragging(true)
+    const startX = e.clientX
+    const startY = e.clientY
+    const baseX = offset.x
+    const baseY = offset.y
+    const move = (ev: PointerEvent) => {
+      setOffset(clampOffset(baseX + (ev.clientX - startX), baseY + (ev.clientY - startY), dispW, dispH))
+    }
+    const up = () => {
+      setDragging(false)
+      document.removeEventListener('pointermove', move)
+      document.removeEventListener('pointerup', up)
+      document.removeEventListener('pointercancel', up)
+    }
+    document.addEventListener('pointermove', move)
+    document.addEventListener('pointerup', up)
+    document.addEventListener('pointercancel', up)
+  }
+
+  const handleConfirm = () => {
+    if (!imgDims || !loadedImg) return
+    const imgCenterX = imgDims.w / 2 - offset.x / effectiveScale
+    const imgCenterY = imgDims.h / 2 - offset.y / effectiveScale
+    const sw = VIEW / effectiveScale
+    const sx = imgCenterX - sw / 2
+    const sy = imgCenterY - sw / 2
+
+    const canvas = document.createElement('canvas')
+    canvas.width = OUT
+    canvas.height = OUT
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    ctx.imageSmoothingQuality = 'high'
+    ctx.drawImage(loadedImg, sx, sy, sw, sw, 0, 0, OUT, OUT)
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.9)
+    onConfirm(dataUrl)
+  }
+
+  return (
+    <div
+      onMouseDown={(e) => { if (!busy && e.target === e.currentTarget) onCancel() }}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 130,
+        background: 'rgba(0,0,0,0.55)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 20,
+      }}
+    >
+      <div style={{
+        width: '100%', maxWidth: 360,
+        background: '#ffffff', borderRadius: 14,
+        padding: '22px 24px 20px',
+        boxShadow: '0 24px 56px rgba(0,0,0,0.22), 0 4px 12px rgba(0,0,0,0.08)',
+        display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'center',
+      }}>
+        <h3 style={{ margin: 0, font: '600 17px/1.3 var(--font-dm-sans), sans-serif', color: '#0a0a0a', alignSelf: 'flex-start' }}>
+          Profilbild zuschneiden
+        </h3>
+
+        <div
+          onPointerDown={onPointerDown}
+          style={{
+            position: 'relative', width: VIEW, height: VIEW,
+            overflow: 'hidden', borderRadius: 12,
+            background: '#0a0a0a', touchAction: 'none',
+            cursor: imgDims ? (dragging ? 'grabbing' : 'grab') : 'default',
+            userSelect: 'none',
+          }}
+        >
+          {imgDims && (
+            <img
+              src={src}
+              alt=""
+              draggable={false}
+              style={{
+                position: 'absolute',
+                width: dispW,
+                height: dispH,
+                left: VIEW / 2 - dispW / 2 + offset.x,
+                top: VIEW / 2 - dispH / 2 + offset.y,
+                pointerEvents: 'none',
+                userSelect: 'none',
+              }}
+            />
+          )}
+          <div style={{
+            position: 'absolute', inset: 0, borderRadius: '50%',
+            boxShadow: '0 0 0 9999px rgba(0,0,0,0.55)',
+            border: '1px solid rgba(255,255,255,0.4)',
+            pointerEvents: 'none',
+          }} />
+        </div>
+
+        <div style={{ display: 'flex', gap: 8, alignSelf: 'stretch' }}>
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={busy}
+            style={{
+              flex: 1,
+              padding: '10px 16px', borderRadius: 10,
+              background: '#FFFFFF', color: '#1C1C1C',
+              border: '1px solid #D6D6D4',
+              font: '500 14px/1 var(--font-dm-sans), sans-serif',
+              cursor: busy ? 'not-allowed' : 'pointer',
+            }}
+          >
+            Abbrechen
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirm}
+            disabled={!imgDims || busy}
+            style={{
+              flex: 1,
+              padding: '10px 16px', borderRadius: 10,
+              background: '#1C1C1C', color: '#FFFFFF',
+              border: 'none',
+              font: '500 14px/1 var(--font-dm-sans), sans-serif',
+              cursor: !imgDims || busy ? 'not-allowed' : 'pointer',
+              opacity: !imgDims || busy ? 0.6 : 1,
+            }}
+          >
+            {busy ? 'Speichern…' : 'Übernehmen'}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

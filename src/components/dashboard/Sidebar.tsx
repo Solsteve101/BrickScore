@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { signOut, useSession } from 'next-auth/react'
 import { getUsage, type UsagePlan } from '@/lib/usage-store'
+import { getCachedUserAvatar } from '@/lib/avatar-cache'
 import { BrickScoreLogo } from '@/components/ui/brickscore-logo'
 
 interface NavItem {
@@ -146,17 +147,27 @@ export default function Sidebar() {
 function UserBlock({ displayName, email, image, initial }: { displayName: string; email: string; image: string | null; initial: string }) {
   const [hover, setHover] = useState(false)
   const [plan, setPlan] = useState<UsagePlan>('free')
+  const [avatar, setAvatar] = useState<string | null>(image)
 
   useEffect(() => {
-    const sync = () => setPlan(getUsage().plan)
-    sync()
-    const onFocus = () => sync()
-    const onStorage = (e: StorageEvent) => { if (e.key === 'brickscore_usage') sync() }
+    if (image) { setAvatar(image); return }
+    let cancelled = false
+    void getCachedUserAvatar().then((img) => { if (!cancelled) setAvatar(img) })
+    return () => { cancelled = true }
+  }, [image])
+
+  useEffect(() => {
+    let cancelled = false
+    const sync = async () => {
+      const u = await getUsage()
+      if (!cancelled) setPlan(u.plan)
+    }
+    void sync()
+    const onFocus = () => { void sync() }
     window.addEventListener('focus', onFocus)
-    window.addEventListener('storage', onStorage)
     return () => {
+      cancelled = true
       window.removeEventListener('focus', onFocus)
-      window.removeEventListener('storage', onStorage)
     }
   }, [])
 
@@ -165,11 +176,11 @@ function UserBlock({ displayName, email, image, initial }: { displayName: string
       <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '4px 8px' }}>
         <span style={{
           width: 30, height: 30, flexShrink: 0, borderRadius: '50%',
-          background: image ? `url(${image}) center/cover no-repeat` : 'linear-gradient(135deg, #3d3d3d, #141414)',
+          background: avatar ? `url(${avatar}) center/cover no-repeat` : 'linear-gradient(135deg, #3d3d3d, #141414)',
           color: '#ffffff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           font: '600 12.5px/1 var(--font-dm-sans), sans-serif',
         }}>
-          {!image && initial}
+          {!avatar && initial}
         </span>
         <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1, gap: 1 }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minWidth: 0 }}>

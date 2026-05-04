@@ -9,7 +9,7 @@ import {
   triggerDownload,
   type ExportFormatKey,
 } from '../exports-store'
-import { spendTokens, hasTokens, getUsage, type UsagePlan } from '../usage-store'
+import { spendTokens, getUsage, type UsagePlan } from '../usage-store'
 
 export interface RunExportInput {
   format: ExportFormatKey
@@ -30,11 +30,11 @@ export interface RunExportInput {
 export async function runExport(input: RunExportInput): Promise<{ filename: string; persisted: boolean; truncated: boolean }> {
   const { format, dealId, pngTargetId, ...rest } = input
 
-  if (!hasTokens('export')) {
-    throw new Error('Nicht genug Tokens für einen Export. Warte bis Montag oder upgrade auf Pro.')
+  const usage = await getUsage()
+  if (usage.tokens_remaining < 2) {
+    throw new Error('Nutzungslimit erreicht. Erneuert sich am Montag oder jetzt upgraden.')
   }
-
-  const plan: UsagePlan = getUsage().plan
+  const plan: UsagePlan = usage.plan
 
   const result =
     format === 'pdf'
@@ -63,7 +63,7 @@ export async function runExport(input: RunExportInput): Promise<{ filename: stri
           })
 
   triggerDownload(result.blob, result.filename)
-  spendTokens('export', `${format.toUpperCase()} · ${rest.titel || 'Deal'}`)
+  await spendTokens('export', `${format.toUpperCase()} · ${rest.titel || 'Deal'}`)
 
   let persisted = false
   let truncated = false
@@ -71,7 +71,7 @@ export async function runExport(input: RunExportInput): Promise<{ filename: stri
     const fits = isWithinPersistLimit(result.blob.size)
     const daten = fits ? await blobToBase64(result.blob) : null
     truncated = !fits
-    saveExport({
+    await saveExport({
       deal_id: dealId,
       format,
       dateiname: result.filename,

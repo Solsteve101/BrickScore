@@ -1,6 +1,12 @@
 import { useState } from 'react'
-import { hasTokens, spendTokens, TOKEN_COST } from '@/lib/usage-store'
+import { getUsage, hasTokens, spendTokens, TOKEN_COST, type UsageAction } from '@/lib/usage-store'
 import { pushToast } from '@/lib/toast'
+
+export interface InsufficientTokensInfo {
+  action: UsageAction
+  required: number
+  remaining: number
+}
 
 export interface ListingData {
   kaufpreis: number | null
@@ -57,14 +63,20 @@ export function useListingAnalysis() {
   const [status, setStatus] = useState<AnalysisStatus>('idle')
   const [data, setData] = useState<ListingData | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [insufficientTokens, setInsufficientTokens] = useState<InsufficientTokensInfo | null>(null)
 
   const analyze = async (payload: { url: string } | { text: string }): Promise<ListingData | null> => {
     const isUrl = 'url' in payload
     const action = isUrl ? 'link_analyse' : 'text_analyse'
-    if (!hasTokens(action)) {
-      const cost = TOKEN_COST[action]
-      setError(`Nicht genug Tokens (${cost} benötigt). Warte bis Montag oder upgrade auf Pro.`)
-      setStatus('error')
+    if (!(await hasTokens(action))) {
+      // Surface as a modal (handled by the caller) instead of inline error UI —
+      // the user might still be able to fall back to manual text analysis.
+      const usage = await getUsage()
+      setInsufficientTokens({
+        action,
+        required: TOKEN_COST[action],
+        remaining: usage.tokens_remaining,
+      })
       return null
     }
     setStatus('loading')
@@ -74,13 +86,13 @@ export function useListingAnalysis() {
       const result = await callApi(payload)
       // Charge tokens only on a successful analysis
       const detail = isUrl ? hostFromUrl((payload as { url: string }).url) : 'Text-Paste'
-      spendTokens(action, detail)
+      await spendTokens(action, detail)
       setData(result)
       setStatus('success')
       if (isUrl) {
         pushToast({
           variant: 'success',
-          message: `Inserat analysiert — ${TOKEN_COST[action]} Tokens verbraucht.`,
+          message: 'Inserat analysiert.',
         })
       }
       return result
@@ -102,12 +114,15 @@ export function useListingAnalysis() {
     status,
     data,
     error,
+    insufficientTokens,
+    dismissInsufficient: () => setInsufficientTokens(null),
     analyzeListing: (url: string) => analyze({ url }),
     analyzeText: (text: string) => analyze({ text }),
     reset: () => {
       setStatus('idle')
       setData(null)
       setError(null)
+      setInsufficientTokens(null)
     },
   }
 }

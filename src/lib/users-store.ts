@@ -1,5 +1,5 @@
-import { promises as fs } from 'fs'
-import path from 'path'
+import { Prisma } from '@prisma/client'
+import { prisma } from './prisma'
 
 export interface StoredUser {
   id: string
@@ -11,76 +11,111 @@ export interface StoredUser {
   createdAt: string
 }
 
-const USERS_PATH = path.join(process.cwd(), 'src', 'data', 'users.json')
-
-async function readAll(): Promise<StoredUser[]> {
-  try {
-    const raw = await fs.readFile(USERS_PATH, 'utf8')
-    const parsed = JSON.parse(raw) as unknown
-    return Array.isArray(parsed) ? parsed as StoredUser[] : []
-  } catch {
-    return []
-  }
+type PrismaUserRow = {
+  id: string
+  email: string
+  name: string | null
+  image: string | null
+  password: string | null
+  createdAt: Date
 }
 
-async function writeAll(users: StoredUser[]): Promise<void> {
-  await fs.writeFile(USERS_PATH, JSON.stringify(users, null, 2) + '\n', 'utf8')
+// Provider is derived: a Google sign-in upserts the row without a password,
+// while a credentials registration always stores a bcrypt hash. There's no
+// dedicated provider column on the Prisma User model.
+function toStored(u: PrismaUserRow): StoredUser {
+  return {
+    id: u.id,
+    email: u.email,
+    name: u.name,
+    image: u.image,
+    passwordHash: u.password,
+    provider: u.password ? 'credentials' : 'google',
+    createdAt: u.createdAt.toISOString(),
+  }
 }
 
 export async function findUserByEmail(email: string): Promise<StoredUser | null> {
-  const users = await readAll()
   const norm = email.toLowerCase().trim()
-  return users.find((u) => u.email.toLowerCase() === norm) ?? null
-}
-
-export async function createUser(user: StoredUser): Promise<void> {
-  const users = await readAll()
-  users.push(user)
-  await writeAll(users)
+  const u = await prisma.user.findUnique({ where: { email: norm } })
+  return u ? toStored(u) : null
 }
 
 export async function findUserById(id: string): Promise<StoredUser | null> {
-  const users = await readAll()
-  return users.find((u) => u.id === id) ?? null
+  const u = await prisma.user.findUnique({ where: { id } })
+  return u ? toStored(u) : null
 }
 
-export async function updateUser(id: string, patch: Partial<Pick<StoredUser, 'name' | 'image' | 'passwordHash'>>): Promise<StoredUser | null> {
-  const users = await readAll()
-  const idx = users.findIndex((u) => u.id === id)
-  if (idx < 0) return null
-  users[idx] = { ...users[idx], ...patch }
-  await writeAll(users)
-  return users[idx]
+export async function createUser(user: StoredUser): Promise<void> {
+  await prisma.user.create({
+    data: {
+      id: user.id,
+      email: user.email.toLowerCase().trim(),
+      name: user.name ?? null,
+      image: user.image ?? null,
+      password: user.passwordHash ?? null,
+    },
+  })
+}
+
+export async function updateUser(
+  id: string,
+  patch: Partial<Pick<StoredUser, 'name' | 'image' | 'passwordHash'>>,
+): Promise<StoredUser | null> {
+  const data: Prisma.UserUpdateInput = {}
+  if (patch.name !== undefined) data.name = patch.name
+  if (patch.image !== undefined) data.image = patch.image
+  if (patch.passwordHash !== undefined) data.password = patch.passwordHash
+  try {
+    const u = await prisma.user.update({ where: { id }, data })
+    return toStored(u)
+  } catch {
+    return null
+  }
 }
 
 export async function deleteUserById(id: string): Promise<boolean> {
-  const users = await readAll()
-  const next = users.filter((u) => u.id !== id)
-  if (next.length === users.length) return false
-  await writeAll(next)
-  return true
+  try {
+    await prisma.user.delete({ where: { id } })
+    return true
+  } catch {
+    return false
+  }
 }
 
-export async function upsertGoogleUser(profile: { email: string; name?: string | null; image?: string | null }): Promise<StoredUser> {
-  const users = await readAll()
+export async function updateUserEmail(id: string, newEmail: string): Promise<StoredUser | null> {
+  try {
+    const u = await prisma.user.update({
+      where: { id },
+      data: { email: newEmail.toLowerCase().trim() },
+    })
+    return toStored(u)
+  } catch {
+    return null
+  }
+}
+
+export async function upsertGoogleUser(profile: {
+  email: string
+  name?: string | null
+  image?: string | null
+}): Promise<StoredUser> {
   const norm = profile.email.toLowerCase().trim()
-  const existing = users.find((u) => u.email.toLowerCase() === norm)
-  if (existing) {
-    existing.name = profile.name ?? existing.name ?? null
-    existing.image = profile.image ?? existing.image ?? null
-    await writeAll(users)
-    return existing
-  }
-  const created: StoredUser = {
-    id: crypto.randomUUID(),
-    email: norm,
-    name: profile.name ?? null,
-    image: profile.image ?? null,
-    passwordHash: null,
-    provider: 'google',
-    createdAt: new Date().toISOString(),
-  }
-  users.push(created)
-  await writeAll(users)
-  return created
+  // On update, only overwrite name/image if a non-empty value came from the
+  // provider — preserves a user-edited name when Google sends a stale value.
+  const updateData: Prisma.UserUpdateInput = {}
+  if (profile.name) updateData.name = profile.name
+  if (profile.image) updateData.image = profile.image
+
+  const u = await prisma.user.upsert({
+    where: { email: norm },
+    update: updateData,
+    create: {
+      email: norm,
+      name: profile.name ?? null,
+      image: profile.image ?? null,
+      password: null,
+    },
+  })
+  return toStored(u)
 }

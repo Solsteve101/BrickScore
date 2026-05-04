@@ -59,7 +59,13 @@ export default function ExportsFlyout({ open, deal, onClose, onRegenerate }: Exp
   const [exports, setExports] = useState<SavedExport[]>([])
 
   useEffect(() => {
-    if (open && deal) setExports(loadExportsForDeal(deal.id))
+    if (!open || !deal) return
+    let cancelled = false
+    void (async () => {
+      const list = await loadExportsForDeal(deal.id)
+      if (!cancelled) setExports(list)
+    })()
+    return () => { cancelled = true }
   }, [open, deal])
 
   useEffect(() => {
@@ -76,8 +82,8 @@ export default function ExportsFlyout({ open, deal, onClose, onRegenerate }: Exp
     triggerDownload(base64ToBlob(e.daten), e.dateiname)
   }
 
-  const handleRemove = (e: SavedExport) => {
-    deleteExport(e.export_id)
+  const handleRemove = async (e: SavedExport) => {
+    await deleteExport(e.export_id)
     setExports((arr) => arr.filter((x) => x.export_id !== e.export_id))
   }
 

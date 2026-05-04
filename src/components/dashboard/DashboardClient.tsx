@@ -32,8 +32,8 @@ export default function DashboardClient() {
   const [exportsViewDeal, setExportsViewDeal] = useState<SavedDeal | null>(null)
   const [exportCounts, setExportCounts] = useState<Record<string, number>>({})
 
-  const refreshCounts = useCallback(() => {
-    setExportCounts(countExportsByDeal())
+  const refreshCounts = useCallback(async () => {
+    setExportCounts(await countExportsByDeal())
   }, [])
 
   const showToast = useCallback((msg: string) => {
@@ -42,8 +42,13 @@ export default function DashboardClient() {
   }, [])
 
   useEffect(() => {
-    setDeals(loadDeals())
+    let cancelled = false
+    void (async () => {
+      const list = await loadDeals()
+      if (!cancelled) setDeals(list)
+    })()
     refreshCounts()
+    return () => { cancelled = true }
   }, [refreshCounts])
 
   const filtered = useMemo(() => {
@@ -76,13 +81,13 @@ export default function DashboardClient() {
     setConfirmDelete(d)
   }, [])
 
-  const confirmAndDelete = useCallback(() => {
+  const confirmAndDelete = useCallback(async () => {
     if (!confirmDelete) return
-    removeDeal(confirmDelete.id)
-    deleteExportsForDeal(confirmDelete.id)
+    await removeDeal(confirmDelete.id)
+    await deleteExportsForDeal(confirmDelete.id)
     setDeals((arr) => arr.filter((d) => d.id !== confirmDelete.id))
     setConfirmDelete(null)
-    refreshCounts()
+    await refreshCounts()
     showToast('Deal gelöscht')
   }, [confirmDelete, refreshCounts, showToast])
 

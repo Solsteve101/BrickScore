@@ -1,0 +1,67 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id               String    @id @default(cuid())
+  name             String?
+  email            String    @unique
+  emailVerified    DateTime?
+  image            String?
+  password         String?
+  plan             String    @default("free")
+  billingInterval  String?
+  tokensRemaining  Int       @default(30)
+  weekStart        String    @default("")
+  exportsCount     Int       @default(0)
+  stripeCustomerId String?
+  deals            Deal[]
+  exports          Export[]
+  tokenUsages      TokenUsage[]
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+model Deal {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  address     String?
+  city        String?
+  state       String?
+  imageUrl    String?
+  data        Json
+  score       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Export {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dealId      String?
+  fileName    String
+  format      String
+  fileData    String?  @db.Text
+  createdAt   DateTime @default(now())
+
+  @@index([userId, dealId])
+}
+
+model TokenUsage {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action      String
+  description String?
+  tokens      Int
+  createdAt   DateTime @default(now())
+}

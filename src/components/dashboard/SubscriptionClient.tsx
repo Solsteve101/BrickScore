@@ -60,8 +60,10 @@ export default function SubscriptionClient() {
   }, [userId])
 
   useEffect(() => {
-    const sync = () => {
-      const u = getUsage()
+    let cancelled = false
+    const sync = async () => {
+      const u = await getUsage()
+      if (cancelled) return
       setTokensRemaining(u.tokens_remaining)
       setTokensMax(u.tokens_max)
       setPlan(u.plan)
@@ -72,14 +74,12 @@ export default function SubscriptionClient() {
       }
       setUsageLoaded(true)
     }
-    sync()
-    const onFocus = () => sync()
-    const onStorage = (e: StorageEvent) => { if (e.key === 'brickscore_usage') sync() }
+    void sync()
+    const onFocus = () => { void sync() }
     window.addEventListener('focus', onFocus)
-    window.addEventListener('storage', onStorage)
     return () => {
+      cancelled = true
       window.removeEventListener('focus', onFocus)
-      window.removeEventListener('storage', onStorage)
     }
   }, [])
 
@@ -93,13 +93,15 @@ export default function SubscriptionClient() {
     const intervalParam = params.get('interval')
     if (success === 'true' && (planParam === 'pro' || planParam === 'business')) {
       const interval: BillingInterval = intervalParam === 'yearly' ? 'yearly' : 'monthly'
-      const next = persistPlan(planParam, interval)
-      setPlan(next.plan)
-      setPlanInterval(next.interval ?? null)
-      setTokensRemaining(next.tokens_remaining)
-      setTokensMax(next.tokens_max)
-      setCycle(interval)
-      pushToast({ variant: 'success', title: 'Upgrade erfolgreich!', message: `Dein Plan wurde auf ${planParam === 'pro' ? 'Pro' : 'Business'} (${interval === 'monthly' ? 'monatlich' : 'jährlich'}) aktualisiert.` })
+      void (async () => {
+        const next = await persistPlan(planParam, interval)
+        setPlan(next.plan)
+        setPlanInterval(next.interval ?? null)
+        setTokensRemaining(next.tokens_remaining)
+        setTokensMax(next.tokens_max)
+        setCycle(interval)
+        pushToast({ variant: 'success', title: 'Upgrade erfolgreich!', message: `Dein Plan wurde auf ${planParam === 'pro' ? 'Pro' : 'Business'} (${interval === 'monthly' ? 'monatlich' : 'jährlich'}) aktualisiert.` })
+      })()
     } else if (canceled === 'true') {
       pushToast({ variant: 'info', message: 'Upgrade abgebrochen.' })
     }
@@ -214,16 +216,21 @@ export default function SubscriptionClient() {
 
         <p style={{ margin: 0, font: '400 13.5px/1.5 var(--font-dm-sans), sans-serif', color: '#6a6a6a' }}>
           {plan === 'pro'
-            ? '200 Tokens pro Woche. Exporte ohne Wasserzeichen.'
+            ? '4x mehr Nutzung. Exporte ohne Wasserzeichen.'
             : plan === 'business'
-              ? '600 Tokens pro Woche. White Label Exporte.'
-              : '20 Tokens pro Woche. Exporte mit Wasserzeichen.'}
+              ? '10x mehr Nutzung. White Label Exporte.'
+              : 'Kostenlos testen. Exporte mit Wasserzeichen.'}
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, opacity: usageLoaded ? 1 : 0, transition: 'opacity 200ms ease' }}>
-          <span style={{ font: '500 12px/1 var(--font-dm-sans), sans-serif', color: '#7a7a7a' }}>
-            {used} / {tokensMax} Tokens diese Woche verbraucht
-          </span>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
+            <span style={{ font: '500 12px/1 var(--font-dm-sans), sans-serif', color: '#7a7a7a' }}>
+              Nutzung diese Woche
+            </span>
+            <span style={{ font: '500 12px/1 var(--font-jetbrains-mono), monospace', color: '#7a7a7a', fontVariantNumeric: 'tabular-nums' }}>
+              {pct}% verbraucht
+            </span>
+          </div>
           <div style={{ height: 8, borderRadius: 9999, background: '#f1f0ec', overflow: 'hidden' }}>
             <div style={{ width: `${pct}%`, height: '100%', background: '#0a0a0a', borderRadius: 9999, transition: 'width 280ms ease' }} />
           </div>
@@ -253,9 +260,8 @@ export default function SubscriptionClient() {
           cycle={cycle}
           tagline="Für aktive Investoren"
           features={[
-            '200 Tokens pro Woche',
+            '4x mehr Nutzung',
             'Kein Wasserzeichen',
-            'Priority-Support',
           ]}
           currentPlan={plan}
           currentInterval={planInterval}
@@ -269,7 +275,8 @@ export default function SubscriptionClient() {
           cycle={cycle}
           tagline="Für Teams und Profis"
           features={[
-            '600 Tokens pro Woche',
+            '10x mehr Nutzung',
+            'Priority-Support',
             'White Label Exporte (kein BrickScore-Branding)',
             'Eigenes Logo im PDF-Export',
             'Team-Zugang (bis zu 5 Mitglieder)',

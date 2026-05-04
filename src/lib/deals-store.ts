@@ -21,50 +21,66 @@ export interface SavedDeal {
   }
 }
 
-const STORAGE_KEY = 'brickscore_deals_v1'
-
-function safeParse(raw: string | null): SavedDeal[] {
-  if (!raw) return []
+export async function loadDeals(): Promise<SavedDeal[]> {
+  if (typeof window === 'undefined') return []
   try {
-    const parsed = JSON.parse(raw) as unknown
-    return Array.isArray(parsed) ? parsed as SavedDeal[] : []
+    const res = await fetch('/api/deals', { cache: 'no-store' })
+    if (!res.ok) return []
+    return (await res.json()) as SavedDeal[]
   } catch {
     return []
   }
 }
 
-export function loadDeals(): SavedDeal[] {
-  if (typeof window === 'undefined') return []
-  return safeParse(window.localStorage.getItem(STORAGE_KEY))
+export async function saveDeal(deal: SavedDeal): Promise<SavedDeal | null> {
+  if (typeof window === 'undefined') return null
+  try {
+    const res = await fetch('/api/deals', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(deal),
+    })
+    if (!res.ok) return null
+    return (await res.json()) as SavedDeal
+  } catch {
+    return null
+  }
 }
 
-export function saveDeal(deal: SavedDeal): void {
-  if (typeof window === 'undefined') return
-  const all = loadDeals()
-  all.unshift(deal)
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(all))
-}
-
-export function findDealById(id: string): SavedDeal | null {
-  return loadDeals().find((d) => d.id === id) ?? null
+export async function findDealById(id: string): Promise<SavedDeal | null> {
+  if (typeof window === 'undefined') return null
+  try {
+    const res = await fetch(`/api/deals/${encodeURIComponent(id)}`, { cache: 'no-store' })
+    if (!res.ok) return null
+    return (await res.json()) as SavedDeal
+  } catch {
+    return null
+  }
 }
 
 /** Replace an existing deal in place, preserving id and original creation date. */
-export function updateDeal(id: string, patch: Partial<Omit<SavedDeal, 'id'>>): SavedDeal | null {
+export async function updateDeal(id: string, patch: Partial<Omit<SavedDeal, 'id'>>): Promise<SavedDeal | null> {
   if (typeof window === 'undefined') return null
-  const all = loadDeals()
-  const idx = all.findIndex((d) => d.id === id)
-  if (idx < 0) return null
-  const merged: SavedDeal = { ...all[idx], ...patch, id }
-  all[idx] = merged
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(all))
-  return merged
+  try {
+    const res = await fetch(`/api/deals/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch),
+    })
+    if (!res.ok) return null
+    return (await res.json()) as SavedDeal
+  } catch {
+    return null
+  }
 }
 
-export function deleteDeal(id: string): void {
+export async function deleteDeal(id: string): Promise<void> {
   if (typeof window === 'undefined') return
-  const all = loadDeals().filter((d) => d.id !== id)
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(all))
+  try {
+    await fetch(`/api/deals/${encodeURIComponent(id)}`, { method: 'DELETE' })
+  } catch {
+    /* ignore */
+  }
 }
 
 export function buildKpis(r: CalcResult, score: number): SavedDeal['kpis'] {

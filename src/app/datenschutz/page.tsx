@@ -35,8 +35,10 @@ Deutschland`}
 
       <H3>4. Datenspeicherung</H3>
       <P>
-        Ihre Immobilien-Analysen und Deals werden lokal in Ihrem Browser (localStorage)
-        gespeichert. Diese Daten verlassen Ihren Browser nicht.
+        Ihre Immobilien-Analysen, Deals, Exporte und Token-Verbrauchshistorie werden in einer
+        verschlüsselten PostgreSQL-Datenbank bei Supabase (Region Frankfurt, EU) gespeichert
+        und sind ausschließlich Ihrem Konto zugeordnet. Beim Löschen Ihres Kontos werden alle
+        zugehörigen Daten unwiderruflich entfernt.
       </P>
 
       <H3>5. Externe Dienste</H3>
@@ -62,6 +64,11 @@ Deutschland`}
         <li style={{ marginBottom: 8 }}>
           <strong>Resend (E-Mail-Versand):</strong> Für Passwort-Reset und E-Mail-Änderung.
           Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung).
+        </li>
+        <li style={{ marginBottom: 8 }}>
+          <strong>Supabase (Datenbank-Hosting):</strong> Supabase Inc., Hosting in Frankfurt
+          (EU). Speicherung Ihrer Konto- und Analysedaten. Rechtsgrundlage: Art. 6 Abs. 1
+          lit. b DSGVO (Vertragserfüllung).
         </li>
       </ul>
 

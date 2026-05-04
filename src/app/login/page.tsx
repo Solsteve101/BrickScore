@@ -9,7 +9,7 @@ import AuthShell from '@/components/auth/AuthShell'
 export default function LoginPage() {
   const router = useRouter()
   const params = useSearchParams()
-  const callbackUrl = params.get('callbackUrl') || '/dashboard'
+  const callbackUrl = params.get('callbackUrl') || '/'
   const resetSuccess = params.get('reset') === 'success'
   const { status } = useSession()
 
@@ -98,7 +98,7 @@ export default function LoginPage() {
         <Field
           label="E-Mail"
           type="email"
-          autoComplete="email"
+          autoComplete="off"
           required
           value={email}
           onChange={setEmail}

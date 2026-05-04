@@ -46,7 +46,6 @@ const TIERS: Tier[] = [
     yearlyTotal: 0,
     yearlySavings: 0,
     features: [
-      { text: '20 Tokens pro Woche', included: true },
       { text: '5 KPIs + Deal Score', included: true },
       { text: 'Linkimport & Textanalyse', included: true },
       { text: '10-Jahres Projektion', included: true },
@@ -66,9 +65,8 @@ const TIERS: Tier[] = [
     yearlySavings: 24,
     features: [
       { text: 'Alles aus Free', included: true },
-      { text: '200 Tokens pro Woche', included: true },
+      { text: '4x mehr Nutzung', included: true },
       { text: 'Kein Wasserzeichen', included: true },
-      { text: 'Priority-Support', included: true },
     ],
     ctaLabel: 'Pro starten',
   },
@@ -82,7 +80,8 @@ const TIERS: Tier[] = [
     yearlySavings: 72,
     features: [
       { text: 'Alles aus Pro', included: true },
-      { text: '600 Tokens pro Woche', included: true },
+      { text: '10x mehr Nutzung', included: true },
+      { text: 'Priority-Support', included: true },
       { text: 'White Label Exporte', included: true },
       { text: 'Eigenes Logo im PDF', included: true },
       { text: 'Team-Zugang', included: true },
@@ -94,8 +93,8 @@ const TIERS: Tier[] = [
 
 const FAQ: { q: string; a: string }[] = [
   {
-    q: 'Was sind Tokens?',
-    a: 'Tokens sind dein Analyse-Guthaben. Eine Link-Analyse kostet 5 Tokens, ein manueller Deal 1 Token. Im Free-Plan bekommst du jede Woche 20 neue Tokens.',
+    q: 'Wie funktionieren die wöchentlichen Limits?',
+    a: 'Jeder Plan hat ein wöchentliches Nutzungslimit für Analysen und Exporte. Das Limit erneuert sich automatisch jeden Montag. Wenn du das Limit erreichst, kannst du jederzeit upgraden oder bis zur nächsten Woche warten.',
   },
   {
     q: 'Kann ich jederzeit kündigen?',
@@ -103,7 +102,7 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: 'Gibt es eine Testphase?',
-    a: 'Der Free-Plan ist dauerhaft kostenlos. Du kannst BrickScore unbegrenzt mit 20 Tokens pro Woche nutzen.',
+    a: 'Der Free-Plan ist dauerhaft kostenlos. Du kannst BrickScore im Rahmen des wöchentlichen Limits unbegrenzt nutzen.',
   },
   {
     q: 'Welche Zahlungsmethoden gibt es?',
@@ -127,20 +126,20 @@ export default function PricingClient() {
 
   useEffect(() => {
     if (!isAuthed) return
-    const sync = () => {
-      const u = getUsage()
+    let cancelled = false
+    const sync = async () => {
+      const u = await getUsage()
+      if (cancelled) return
       setPlan(u.plan)
       setPlanInterval(u.interval ?? null)
       if (u.interval === 'monthly' || u.interval === 'yearly') setCycle(u.interval)
     }
-    sync()
-    const onFocus = () => sync()
-    const onStorage = (e: StorageEvent) => { if (e.key === 'brickscore_usage') sync() }
+    void sync()
+    const onFocus = () => { void sync() }
     window.addEventListener('focus', onFocus)
-    window.addEventListener('storage', onStorage)
     return () => {
+      cancelled = true
       window.removeEventListener('focus', onFocus)
-      window.removeEventListener('storage', onStorage)
     }
   }, [isAuthed])
 

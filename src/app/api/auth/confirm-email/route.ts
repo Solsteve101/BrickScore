@@ -1,30 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { consumeEmailToken } from '@/lib/token-store'
-import { findUserById, findUserByEmail } from '@/lib/users-store'
-import { promises as fs } from 'fs'
-import path from 'path'
+import { findUserById, findUserByEmail, updateUserEmail } from '@/lib/users-store'
 import { appBaseUrl } from '@/lib/email'
-
-const USERS_PATH = path.join(process.cwd(), 'src', 'data', 'users.json')
-
-interface StoredUser {
-  id: string
-  email: string
-  name?: string | null
-  image?: string | null
-  passwordHash?: string | null
-  provider: 'credentials' | 'google'
-  createdAt: string
-}
-
-async function updateUserEmail(id: string, newEmail: string): Promise<void> {
-  const raw = await fs.readFile(USERS_PATH, 'utf8')
-  const users = JSON.parse(raw) as StoredUser[]
-  const idx = users.findIndex((u) => u.id === id)
-  if (idx < 0) return
-  users[idx] = { ...users[idx], email: newEmail }
-  await fs.writeFile(USERS_PATH, JSON.stringify(users, null, 2) + '\n', 'utf8')
-}
 
 function redirectTo(target: string): NextResponse {
   return NextResponse.redirect(`${appBaseUrl()}${target}`)

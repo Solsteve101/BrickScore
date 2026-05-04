@@ -65,8 +65,14 @@ export default function ExportsClient() {
   }, [])
 
   useEffect(() => {
-    setExports(loadExports())
-    setDeals(loadDeals())
+    let cancelled = false
+    void (async () => {
+      const [exp, dl] = await Promise.all([loadExports(), loadDeals()])
+      if (cancelled) return
+      setExports(exp)
+      setDeals(dl)
+    })()
+    return () => { cancelled = true }
   }, [])
 
   const dealsById = useMemo(() => {
@@ -84,8 +90,8 @@ export default function ExportsClient() {
     triggerDownload(base64ToBlob(e.daten), e.dateiname)
   }, [])
 
-  const handleDelete = useCallback((e: SavedExport) => {
-    deleteExport(e.export_id)
+  const handleDelete = useCallback(async (e: SavedExport) => {
+    await deleteExport(e.export_id)
     setExports((arr) => arr.filter((x) => x.export_id !== e.export_id))
     showToast('Export gelöscht')
   }, [showToast])
@@ -119,7 +125,7 @@ export default function ExportsClient() {
         pngTargetId: `vestora-deal-snapshot-${deal.id}`,
         dealId: deal.id,
       })
-      setExports(loadExports())
+      setExports(await loadExports())
       showToast(res.truncated ? '✓ Heruntergeladen — Datei zu groß zum Speichern' : '✓ Export erneut erstellt')
     } catch (err) {
       showToast(`Export fehlgeschlagen: ${err instanceof Error ? err.message : String(err)}`)
