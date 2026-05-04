@@ -1909,7 +1909,15 @@ export default function Calculator() {
           </section>
 
           {/* ── ACTION BUTTONS — full-width row below projection ── */}
-          <div className="bs-calc-actions" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
+          <p style={{
+            margin: '12px 0 0',
+            font: '400 11px/1.4 var(--font-dm-sans), sans-serif',
+            color: '#9CA3AF',
+            textAlign: 'center',
+          }}>
+            Bitte überprüfe alle Eingaben vor dem Speichern.
+          </p>
+          <div className="bs-calc-actions" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 8 }}>
             <button
               onClick={onSave}
               style={{

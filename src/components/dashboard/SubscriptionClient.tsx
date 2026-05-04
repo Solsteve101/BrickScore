@@ -52,6 +52,7 @@ export default function SubscriptionClient() {
   const [copied, setCopied] = useState<'code' | 'url' | null>(null)
   const [cycle, setCycle] = useState<Cycle>('monthly')
   const [busyPlan, setBusyPlan] = useState<PlanKey | null>(null)
+  const [portalBusy, setPortalBusy] = useState(false)
 
   useEffect(() => {
     const code = getOrCreateOwnReferralCode(userId ?? null)
@@ -147,6 +148,26 @@ export default function SubscriptionClient() {
     }
   }
 
+  const openBillingPortal = async () => {
+    if (portalBusy) return
+    setPortalBusy(true)
+    try {
+      const res = await fetch('/api/stripe/portal', { method: 'POST' })
+      const json = await res.json().catch(() => ({})) as { url?: string; message?: string; error?: string }
+      if (!res.ok || !json.url) {
+        pushToast({ variant: 'error', message: json.message ?? 'Abo-Verwaltung konnte nicht geöffnet werden.' })
+        setPortalBusy(false)
+        return
+      }
+      window.location.href = json.url
+    } catch (e) {
+      pushToast({ variant: 'error', message: e instanceof Error ? e.message : 'Abo-Verwaltung konnte nicht geöffnet werden.' })
+      setPortalBusy(false)
+    }
+  }
+
+  const canManage = plan !== 'free'
+
   const used = Math.max(0, tokensMax - tokensRemaining)
   const pct = tokensMax > 0 ? Math.min(100, Math.round((used / tokensMax) * 100)) : 0
 
@@ -195,7 +216,8 @@ export default function SubscriptionClient() {
           </div>
           <button
             type="button"
-            disabled
+            onClick={openBillingPortal}
+            disabled={!canManage || portalBusy}
             className="bs-sub-manage-btn"
             style={{
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -203,14 +225,16 @@ export default function SubscriptionClient() {
               background: '#FFFFFF', color: '#1C1C1C',
               border: '1px solid #D6D6D4',
               font: '500 12px/1 var(--font-dm-sans), sans-serif',
-              cursor: 'not-allowed',
-              opacity: 0.5,
+              cursor: !canManage || portalBusy ? 'not-allowed' : 'pointer',
+              opacity: !canManage ? 0.5 : portalBusy ? 0.7 : 1,
               transition: 'all 0.2s ease',
               flexShrink: 0,
               whiteSpace: 'nowrap',
             }}
+            onMouseEnter={(e) => { if (canManage && !portalBusy) e.currentTarget.style.background = '#F5F5F3' }}
+            onMouseLeave={(e) => { if (canManage && !portalBusy) e.currentTarget.style.background = '#FFFFFF' }}
           >
-            Abo verwalten
+            {portalBusy ? 'Öffnen…' : 'Abo verwalten'}
           </button>
         </div>
 
@@ -260,8 +284,9 @@ export default function SubscriptionClient() {
           cycle={cycle}
           tagline="Für aktive Investoren"
           features={[
-            '4x mehr Nutzung',
-            'Kein Wasserzeichen',
+            { text: 'Alles aus Free', included: true },
+            { text: '4x mehr Nutzung', included: true },
+            { text: 'Kein Wasserzeichen', included: true },
           ]}
           currentPlan={plan}
           currentInterval={planInterval}
@@ -275,13 +300,13 @@ export default function SubscriptionClient() {
           cycle={cycle}
           tagline="Für Teams und Profis"
           features={[
-            '10x mehr Nutzung',
-            'Priority-Support',
-            'White Label Exporte (kein BrickScore-Branding)',
-            'Eigenes Logo im PDF-Export',
-            'Team-Zugang (bis zu 5 Mitglieder)',
-            'API-Zugriff',
-            'Dedicated Support',
+            { text: 'Alles aus Pro', included: true },
+            { text: '10x mehr Nutzung', included: true },
+            { text: 'Priority-Support', included: true },
+            { text: 'White Label Exporte', included: true },
+            { text: 'Eigenes Logo im PDF-Export', included: true },
+            { text: 'Team-Zugang (bald verfügbar)', included: true },
+            { text: 'API-Zugriff (bald verfügbar)', included: true },
           ]}
           currentPlan={plan}
           currentInterval={planInterval}
@@ -412,7 +437,7 @@ function PlanCard({
   price: PriceInfo
   cycle: Cycle
   tagline: string
-  features: string[]
+  features: { text: string; included: boolean }[]
   currentPlan: UsagePlan
   currentInterval: BillingInterval | null
   busy: boolean
@@ -484,11 +509,26 @@ function PlanCard({
         )}
       </div>
 
-      <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 8 }}>
         {features.map((f) => (
-          <li key={f} style={{ display: 'flex', alignItems: 'baseline', gap: 8, font: '400 13px/1.4 var(--font-dm-sans), sans-serif', color: '#3a3a3a' }}>
-            <span aria-hidden="true" style={{ color: '#9a9a9a', flexShrink: 0 }}>•</span>
-            {f}
+          <li
+            key={f.text}
+            style={{
+              display: 'inline-flex', alignItems: 'flex-start', gap: 9,
+              font: '400 13px/1.45 var(--font-dm-sans), sans-serif',
+              color: f.included ? '#3a3a3a' : '#9a9a9a',
+            }}
+          >
+            {f.included ? (
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ color: '#1f8a65', flexShrink: 0, marginTop: 2 }}>
+                <path d="M3 8.5l3.2 3.2L13 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ color: '#c9c9c9', flexShrink: 0, marginTop: 2 }}>
+                <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            )}
+            <span>{f.text}</span>
           </li>
         ))}
       </ul>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import type Stripe from 'stripe'
 import { getStripe } from '@/lib/stripe'
+import { prisma } from '@/lib/prisma'
 
 export const runtime = 'nodejs'
 
@@ -27,15 +28,24 @@ export async function POST(req: NextRequest) {
     const session = event.data.object as Stripe.Checkout.Session
     const plan = session.metadata?.plan ?? null
     const interval = session.metadata?.interval ?? null
+    const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id ?? null
+    const email = session.customer_details?.email ?? null
     // eslint-disable-next-line no-console
     console.log('[stripe] checkout.session.completed', {
       id: session.id,
-      customerEmail: session.customer_details?.email ?? null,
+      customerEmail: email,
+      customerId,
       plan,
       interval,
       amountTotal: session.amount_total,
       currency: session.currency,
     })
+    if (customerId && email) {
+      await prisma.user.updateMany({
+        where: { email, stripeCustomerId: null },
+        data: { stripeCustomerId: customerId },
+      })
+    }
   }
 
   return NextResponse.json({ received: true })
