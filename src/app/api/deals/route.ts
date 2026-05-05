@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { getCurrentDbUser } from '@/lib/db-user'
+import { IMAGE_LIMITS, normalizePlan } from '@/lib/usage-shared'
 import type { SavedDeal } from '@/lib/deals-store'
 
 type DealRow = {
@@ -40,6 +41,14 @@ export async function POST(req: Request) {
   const body = (await req.json()) as Partial<SavedDeal>
   if (!body || typeof body !== 'object' || !body.id) {
     return NextResponse.json({ error: 'invalid body' }, { status: 400 })
+  }
+  const plan = normalizePlan(user.plan)
+  const incomingImages = body.bilder ?? []
+  if (incomingImages.length > IMAGE_LIMITS[plan]) {
+    return NextResponse.json(
+      { error: 'plan_limit', message: `Plan-Limit erreicht. Maximal ${IMAGE_LIMITS[plan]} Bilder bei ${plan === 'pro' ? 'Pro' : plan === 'business' ? 'Business' : 'Free'}.` },
+      { status: 403 },
+    )
   }
   const created = await prisma.deal.create({
     data: {

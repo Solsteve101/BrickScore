@@ -1,35 +1,58 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import Link from 'next/link'
+import { IMAGE_LIMITS, type UsagePlan } from '@/lib/usage-shared'
 
 interface SaveDealModalProps {
   open: boolean
   onClose: () => void
   defaultLink: string
   onSave: (data: { titel: string; link: string; notizen: string; bilder: string[] }) => void
+  mode?: 'create' | 'edit'
+  initial?: { titel?: string; link?: string; notizen?: string; bilder?: string[] }
+  plan?: UsagePlan
 }
 
-const MAX_IMAGES = 5
 const MAX_BYTES = 5 * 1024 * 1024
 
-export default function SaveDealModal({ open, onClose, defaultLink, onSave }: SaveDealModalProps) {
+export default function SaveDealModal({ open, onClose, defaultLink, onSave, mode = 'create', initial, plan = 'free' }: SaveDealModalProps) {
   const [titel, setTitel] = useState('')
   const [link, setLink] = useState('')
   const [notizen, setNotizen] = useState('')
   const [bilder, setBilder] = useState<string[]>([])
+  const [originalCount, setOriginalCount] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  const planLimit = IMAGE_LIMITS[plan]
+  const isFree = plan === 'free'
+  // Free with grandfathered images may keep them but cannot upload new ones.
+  // The effective ceiling is max(planLimit, current original count) — they
+  // can never exceed what they already had.
+  const maxAllowed = Math.max(planLimit, originalCount)
+  const canUploadNew = bilder.length < maxAllowed && !isFree
+
   useEffect(() => {
     if (open) {
-      setTitel('')
-      setLink(defaultLink || '')
-      setNotizen('')
-      setBilder([])
+      if (mode === 'edit' && initial) {
+        const initialBilder = initial.bilder ?? []
+        setTitel(initial.titel ?? '')
+        setLink(initial.link ?? '')
+        setNotizen(initial.notizen ?? '')
+        setBilder(initialBilder)
+        setOriginalCount(initialBilder.length)
+      } else {
+        setTitel('')
+        setLink(defaultLink || '')
+        setNotizen('')
+        setBilder([])
+        setOriginalCount(0)
+      }
       setError(null)
     }
-  }, [open, defaultLink])
+  }, [open, defaultLink, mode, initial])
 
   useEffect(() => {
     if (!open) return
@@ -39,6 +62,10 @@ export default function SaveDealModal({ open, onClose, defaultLink, onSave }: Sa
   }, [open, onClose])
 
   const handleFiles = useCallback(async (files: FileList | File[]) => {
+    if (isFree) {
+      setError('Bild-Upload ab Pro verfügbar.')
+      return
+    }
     setError(null)
     const arr = Array.from(files)
     const accepted = arr.filter((f) => /^image\/(jpeg|jpg|png|webp)$/.test(f.type))
@@ -47,8 +74,8 @@ export default function SaveDealModal({ open, onClose, defaultLink, onSave }: Sa
     }
     const next: string[] = []
     for (const f of accepted) {
-      if (next.length + bilder.length >= MAX_IMAGES) {
-        setError(`Maximal ${MAX_IMAGES} Bilder.`)
+      if (next.length + bilder.length >= planLimit) {
+        setError(`Plan-Limit erreicht. Maximal ${planLimit} Bilder bei ${plan === 'pro' ? 'Pro' : 'Business'}.`)
         break
       }
       if (f.size > MAX_BYTES) {
@@ -59,7 +86,7 @@ export default function SaveDealModal({ open, onClose, defaultLink, onSave }: Sa
       next.push(dataUrl)
     }
     if (next.length) setBilder((b) => [...b, ...next])
-  }, [bilder.length])
+  }, [bilder.length, isFree, planLimit, plan])
 
   if (!open) return null
 
@@ -98,7 +125,7 @@ export default function SaveDealModal({ open, onClose, defaultLink, onSave }: Sa
 
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h2 style={{ margin: 0, font: '700 20px/1.2 var(--font-dm-sans), sans-serif', color: '#ffffff', letterSpacing: '-0.4px' }}>
-            Deal speichern
+            {mode === 'edit' ? 'Beschreibung bearbeiten' : 'Deal speichern'}
           </h2>
           <button
             type="button"
@@ -142,11 +169,40 @@ export default function SaveDealModal({ open, onClose, defaultLink, onSave }: Sa
 
         <div>
           <span style={labelStyle}>Bilder hinzufügen (optional)</span>
+
+          {isFree && (
+            <div style={{
+              marginTop: 8,
+              padding: '10px 12px', borderRadius: 9,
+              background: 'rgba(184,150,12,0.10)',
+              border: '1px solid rgba(184,150,12,0.28)',
+              display: 'flex', alignItems: 'center', gap: 10,
+            }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#d4a712', flexShrink: 0 }} aria-hidden="true">
+                <rect x="3" y="11" width="18" height="11" rx="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+              <span style={{ flex: 1, font: '500 12.5px/1.4 var(--font-dm-sans), sans-serif', color: 'rgba(247,247,244,0.85)' }}>
+                Bild-Upload ab Pro verfügbar.
+              </span>
+              <Link
+                href="/preise"
+                style={{
+                  font: '600 12px/1 var(--font-dm-sans), sans-serif',
+                  color: '#f7d257', textDecoration: 'underline', whiteSpace: 'nowrap',
+                }}
+              >
+                Plan upgraden
+              </Link>
+            </div>
+          )}
+
           <div
-            onClick={() => fileInputRef.current?.click()}
-            onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+            onClick={() => { if (canUploadNew) fileInputRef.current?.click() }}
+            onDragOver={(e) => { if (!canUploadNew) return; e.preventDefault(); setDragOver(true) }}
             onDragLeave={() => setDragOver(false)}
             onDrop={(e) => {
+              if (!canUploadNew) return
               e.preventDefault()
               setDragOver(false)
               if (e.dataTransfer?.files?.length) void handleFiles(e.dataTransfer.files)
@@ -157,9 +213,11 @@ export default function SaveDealModal({ open, onClose, defaultLink, onSave }: Sa
               borderRadius: 10,
               border: `1.5px dashed ${dragOver ? 'rgba(247,247,244,0.5)' : 'rgba(255,255,255,0.18)'}`,
               background: dragOver ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.02)',
-              cursor: 'pointer',
+              cursor: canUploadNew ? 'pointer' : 'not-allowed',
+              opacity: canUploadNew ? 1 : 0.5,
+              pointerEvents: canUploadNew ? 'auto' : 'none',
               textAlign: 'center',
-              transition: 'background 140ms ease, border-color 140ms ease',
+              transition: 'background 140ms ease, border-color 140ms ease, opacity 140ms ease',
             }}
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'rgba(247,247,244,0.55)', marginBottom: 6 }}>
@@ -171,7 +229,7 @@ export default function SaveDealModal({ open, onClose, defaultLink, onSave }: Sa
               Klicken oder Dateien hierher ziehen
             </div>
             <div style={{ marginTop: 4, font: '400 11.5px/1.4 var(--font-dm-sans), sans-serif', color: 'rgba(247,247,244,0.5)' }}>
-              JPG, PNG, WebP — max. {MAX_IMAGES} Bilder, je 5 MB
+              JPG, PNG, WebP — max. {planLimit} Bilder, je 5 MB
             </div>
           </div>
           <input
@@ -180,6 +238,7 @@ export default function SaveDealModal({ open, onClose, defaultLink, onSave }: Sa
             accept="image/jpeg,image/png,image/webp"
             multiple
             hidden
+            disabled={!canUploadNew}
             onChange={(e) => { if (e.target.files?.length) void handleFiles(e.target.files); e.target.value = '' }}
           />
 

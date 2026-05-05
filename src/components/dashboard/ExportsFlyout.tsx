@@ -167,15 +167,15 @@ export default function ExportsFlyout({ open, deal, onClose, onRegenerate }: Exp
                     >
                       Herunterladen
                     </button>
-                  ) : (
+                  ) : (e.format === 'pdf' || e.format === 'xlsx') ? (
                     <button
                       type="button"
-                      onClick={() => onRegenerate(deal, e.format)}
+                      onClick={() => onRegenerate(deal, e.format as 'pdf' | 'xlsx')}
                       style={smallOutlineBtn}
                     >
                       Erneut generieren
                     </button>
-                  )}
+                  ) : null}
                   <button
                     type="button"
                     onClick={() => handleRemove(e)}

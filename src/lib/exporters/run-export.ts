@@ -1,18 +1,18 @@
 import type { CalcInputs, CalcResult, ProjectionRow } from '../calculator-engine'
 import { exportPdf } from './pdf-export'
 import { exportXlsx } from './xlsx-export'
-import { exportPng } from './png-export'
 import {
   blobToBase64,
   isWithinPersistLimit,
   saveExport,
   triggerDownload,
-  type ExportFormatKey,
 } from '../exports-store'
 import { spendTokens, getUsage, type UsagePlan } from '../usage-store'
 
+export type ExportableFormat = 'pdf' | 'xlsx'
+
 export interface RunExportInput {
-  format: ExportFormatKey
+  format: ExportableFormat
   titel: string
   link: string
   bilder: string[]
@@ -22,13 +22,12 @@ export interface RunExportInput {
   termYr: number
   score: number
   verdict: string
-  pngTargetId: string
   /** When provided, the export is persisted to localStorage tied to this deal. */
   dealId?: string | null
 }
 
 export async function runExport(input: RunExportInput): Promise<{ filename: string; persisted: boolean; truncated: boolean }> {
-  const { format, dealId, pngTargetId, ...rest } = input
+  const { format, dealId, ...rest } = input
 
   const usage = await getUsage()
   if (usage.tokens_remaining < 2) {
@@ -39,28 +38,17 @@ export async function runExport(input: RunExportInput): Promise<{ filename: stri
   const result =
     format === 'pdf'
       ? await exportPdf({ ...rest, plan })
-      : format === 'xlsx'
-        ? exportXlsx({
-            titel: rest.titel,
-            inputs: rest.inputs,
-            result: rest.result,
-            projection: rest.projection,
-            termYr: rest.termYr,
-            score: rest.score,
-            verdict: rest.verdict,
-            link: rest.link,
-            plan,
-          })
-        : await exportPng({
-            pngTargetId,
-            titel: rest.titel,
-            inputs: rest.inputs,
-            result: rest.result,
-            score: rest.score,
-            verdict: rest.verdict,
-            link: rest.link,
-            plan,
-          })
+      : exportXlsx({
+          titel: rest.titel,
+          inputs: rest.inputs,
+          result: rest.result,
+          projection: rest.projection,
+          termYr: rest.termYr,
+          score: rest.score,
+          verdict: rest.verdict,
+          link: rest.link,
+          plan,
+        })
 
   triggerDownload(result.blob, result.filename)
   await spendTokens('export', `${format.toUpperCase()} · ${rest.titel || 'Deal'}`)

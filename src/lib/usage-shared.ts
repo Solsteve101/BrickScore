@@ -41,6 +41,13 @@ export const PLAN_MAX: Record<UsagePlan, number> = {
   business: 300,
 }
 
+/** Per-deal image upload limit by plan. Free cannot upload new images. */
+export const IMAGE_LIMITS: Record<UsagePlan, number> = {
+  free: 0,
+  pro: 5,
+  business: 20,
+}
+
 export const HISTORY_LIMIT = 200
 
 export const FREE_TOKENS = PLAN_MAX.free

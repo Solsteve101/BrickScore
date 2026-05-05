@@ -8,6 +8,7 @@ interface DealCardProps {
   deal: SavedDeal
   exportCount?: number
   onOpen: (deal: SavedDeal) => void
+  onEdit: (deal: SavedDeal) => void
   onExport: (deal: SavedDeal) => void
   onDelete: (deal: SavedDeal) => void
   onShowExports: (deal: SavedDeal) => void
@@ -29,7 +30,7 @@ function fmtDateDe(iso: string): string {
   catch { return '—' }
 }
 
-export default function DealCard({ deal, exportCount = 0, onOpen, onExport, onDelete, onShowExports }: DealCardProps) {
+export default function DealCard({ deal, exportCount = 0, onOpen, onEdit, onExport, onDelete, onShowExports }: DealCardProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [hover, setHover] = useState(false)
   const wrapRef = useRef<HTMLDivElement>(null)
@@ -129,6 +130,7 @@ export default function DealCard({ deal, exportCount = 0, onOpen, onExport, onDe
               }}
             >
               <MenuItem label="Öffnen" onClick={() => { setMenuOpen(false); onOpen(deal) }} />
+              <MenuItem label="Beschreibung bearbeiten" onClick={() => { setMenuOpen(false); onEdit(deal) }} />
               <MenuItem label="Exportieren" onClick={() => { setMenuOpen(false); onExport(deal) }} />
               {exportCount > 0 && (
                 <MenuItem label={`Exporte anzeigen (${exportCount})`} onClick={() => { setMenuOpen(false); onShowExports(deal) }} />

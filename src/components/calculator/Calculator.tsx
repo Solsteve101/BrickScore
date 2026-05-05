@@ -20,13 +20,12 @@ import {
   nkComponents,
   nkTotalPct,
 } from '@/lib/calculator-engine'
-import { CITIES, normCity } from '@/lib/cities-data'
 import { useListingAnalysis, type ListingData } from '@/hooks/useListingAnalysis'
 import SaveDealModal from './SaveDealModal'
 import ExportDealModal, { type ExportFormat } from './ExportDealModal'
 import { saveDeal as persistDeal, updateDeal, buildKpis, findDealById, type SavedDeal } from '@/lib/deals-store'
 import { runExport } from '@/lib/exporters/run-export'
-import { hasTokens, spendTokens } from '@/lib/usage-store'
+import { hasTokens, spendTokens, getUsage, type UsagePlan } from '@/lib/usage-store'
 import { pushToast } from '@/lib/toast'
 
 // ═══════════════════════════════════════════════════════════
@@ -100,6 +99,7 @@ function VIcon({ name, size = 16, stroke = 1.5 }: { name: string; size?: number;
 
 function InfoTip({ content, size = 11 }: { content: string; size?: number }) {
   const [shown, setShown] = useState(false)
+  const [openLeft, setOpenLeft] = useState(false)
   const btnRef = useRef<HTMLButtonElement>(null)
   const popRef = useRef<HTMLSpanElement>(null)
 
@@ -119,7 +119,16 @@ function InfoTip({ content, size = 11 }: { content: string; size?: number }) {
       <button
         ref={btnRef}
         type="button"
-        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShown((s) => !s) }}
+        onClick={(e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          if (!shown && btnRef.current) {
+            const rect = btnRef.current.getBoundingClientRect()
+            const spaceRight = window.innerWidth - rect.right
+            setOpenLeft(spaceRight < 260)
+          }
+          setShown((s) => !s)
+        }}
         aria-label="Definition anzeigen"
         style={{
           width: size, height: size, padding: 0,
@@ -140,7 +149,8 @@ function InfoTip({ content, size = 11 }: { content: string; size?: number }) {
           ref={popRef}
           role="tooltip"
           style={{
-            position: 'absolute', top: 'calc(100% + 6px)', left: -4,
+            position: 'absolute', top: 'calc(100% + 6px)',
+            ...(openLeft ? { right: -4 } : { left: -4 }),
             zIndex: 50, width: 240, maxWidth: 'calc(100vw - 40px)',
             padding: '10px 12px', borderRadius: 8,
             background: '#26251e', color: '#f2f1ed',
@@ -149,7 +159,11 @@ function InfoTip({ content, size = 11 }: { content: string; size?: number }) {
             letterSpacing: 0.05, textAlign: 'left', pointerEvents: 'auto',
           }}
         >
-          <span style={{ position: 'absolute', top: -4, left: 8, width: 8, height: 8, background: '#26251e', transform: 'rotate(45deg)' }} />
+          <span style={{
+            position: 'absolute', top: -4,
+            ...(openLeft ? { right: 8 } : { left: 8 }),
+            width: 8, height: 8, background: '#26251e', transform: 'rotate(45deg)',
+          }} />
           {content}
         </span>
       )}
@@ -263,8 +277,10 @@ function NumberInput({
 }
 
 // ═══════════════════════════════════════════════════════════
-// CITY INPUT
+// LOCATION INPUT
 // ═══════════════════════════════════════════════════════════
+
+const BUNDESLAENDER = [...STATES].sort((a, b) => a.name.localeCompare(b.name, 'de'))
 
 function CityInput({ value, stateCode, onPick }: {
   value: string
@@ -277,19 +293,6 @@ function CityInput({ value, stateCode, onPick }: {
   const wrap = useRef<HTMLDivElement>(null)
 
   const stateName = STATES.find((s) => s.code === stateCode)?.name || '—'
-  const q = normCity(value)
-
-  const matches = useMemo(() => {
-    if (!q) return CITIES
-    const starts: typeof CITIES = []
-    const contains: typeof CITIES = []
-    for (const c of CITIES) {
-      const n = normCity(c.city)
-      if (n.startsWith(q)) starts.push(c)
-      else if (n.includes(q)) contains.push(c)
-    }
-    return [...starts, ...contains]
-  }, [q])
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
@@ -299,16 +302,16 @@ function CityInput({ value, stateCode, onPick }: {
     return () => document.removeEventListener('mousedown', onClick)
   }, [])
 
-  const pick = (m: { city: string; state: string }) => {
-    onPick(m.city, m.state)
+  const pick = (s: { code: string; name: string }) => {
+    onPick(s.name, s.code)
     setOpen(false)
   }
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (!open) return
-    if (e.key === 'ArrowDown') { e.preventDefault(); setActive((i) => Math.min(matches.length - 1, i + 1)) }
+    if (e.key === 'ArrowDown') { e.preventDefault(); setActive((i) => Math.min(BUNDESLAENDER.length - 1, i + 1)) }
     else if (e.key === 'ArrowUp') { e.preventDefault(); setActive((i) => Math.max(0, i - 1)) }
-    else if (e.key === 'Enter') { e.preventDefault(); if (matches[active]) pick(matches[active]) }
+    else if (e.key === 'Enter') { e.preventDefault(); if (BUNDESLAENDER[active]) pick(BUNDESLAENDER[active]) }
     else if (e.key === 'Escape') setOpen(false)
   }
 
@@ -329,7 +332,7 @@ function CityInput({ value, stateCode, onPick }: {
         </span>
         <input
           value={value}
-          placeholder="Stadt eingeben …"
+          placeholder="Bundesland wählen …"
           onFocus={() => { setFocus(true); setOpen(true); setActive(0) }}
           onBlur={() => setFocus(false)}
           onChange={(e) => { onPick(e.target.value, stateCode, true); setOpen(true); setActive(0) }}
@@ -352,7 +355,7 @@ function CityInput({ value, stateCode, onPick }: {
         )}
       </div>
 
-      {open && matches.length > 0 && (
+      {open && (
         <div style={{
           position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0,
           background: '#ffffff', borderRadius: 8,
@@ -360,14 +363,13 @@ function CityInput({ value, stateCode, onPick }: {
           zIndex: 30, padding: 4, maxHeight: 420, overflowY: 'auto',
           overscrollBehavior: 'contain',
         }}>
-          {matches.map((m, i) => {
-            const stName = STATES.find((s) => s.code === m.state)?.name || m.state
+          {BUNDESLAENDER.map((s, i) => {
             const isActive = i === active
             return (
               <div
-                key={`${m.city}-${m.state}`}
+                key={s.code}
                 onMouseEnter={() => setActive(i)}
-                onMouseDown={(e) => { e.preventDefault(); pick(m) }}
+                onMouseDown={(e) => { e.preventDefault(); pick(s) }}
                 style={{
                   display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
                   padding: '9px 10px', borderRadius: 6, cursor: 'pointer',
@@ -375,8 +377,8 @@ function CityInput({ value, stateCode, onPick }: {
                   transition: 'background 120ms ease',
                 }}
               >
-                <span style={{ font: '500 13.5px var(--font-dm-sans), sans-serif', color: '#26251e' }}>{m.city}</span>
-                <span style={{ font: '400 11px var(--font-jetbrains-mono), monospace', color: 'rgba(38,37,30,0.5)' }}>{stName}</span>
+                <span style={{ font: '500 13.5px var(--font-dm-sans), sans-serif', color: '#26251e' }}>{s.name}</span>
+                <span style={{ font: '400 11px var(--font-jetbrains-mono), monospace', color: 'rgba(38,37,30,0.5)' }}>{s.code}</span>
               </div>
             )
           })}
@@ -1419,6 +1421,12 @@ export default function Calculator() {
   }, [])
 
   const [saveOpen, setSaveOpen] = useState(false)
+  const [userPlan, setUserPlan] = useState<UsagePlan>('free')
+  useEffect(() => {
+    let cancelled = false
+    void getUsage().then((u) => { if (!cancelled) setUserPlan(u.plan) })
+    return () => { cancelled = true }
+  }, [])
   const [updateChoiceOpen, setUpdateChoiceOpen] = useState(false)
   const [exportOpen, setExportOpen] = useState(false)
   const [exporting, setExporting] = useState(false)
@@ -1472,7 +1480,6 @@ export default function Calculator() {
       termYr,
       score,
       verdict: extLabel,
-      pngTargetId: 'vestora-export-target',
       dealId,
     })
     return res
@@ -1565,6 +1572,7 @@ export default function Calculator() {
         onClose={() => setSaveOpen(false)}
         defaultLink={inputs.listingUrl}
         onSave={handleSaveDeal}
+        plan={userPlan}
       />
 
       {/* Update vs new-save choice (only when an existing deal is loaded) */}

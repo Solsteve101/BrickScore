@@ -111,6 +111,10 @@ export default function ExportsClient() {
       const score = dealScore(r)
       const verdict = dealState(r, 5).label
 
+      if (e.format !== 'pdf' && e.format !== 'xlsx') {
+        showToast('Format nicht mehr unterstützt.')
+        return
+      }
       const res = await runExport({
         format: e.format,
         titel: deal.titel,
@@ -122,7 +126,6 @@ export default function ExportsClient() {
         termYr,
         score,
         verdict,
-        pngTargetId: `vestora-deal-snapshot-${deal.id}`,
         dealId: deal.id,
       })
       setExports(await loadExports())
@@ -248,24 +251,6 @@ export default function ExportsClient() {
         )}
       </div>
 
-      {/* Hidden snapshot targets so PNG re-generation has a DOM node */}
-      <div style={{ position: 'fixed', left: -10000, top: 0, pointerEvents: 'none', opacity: 0 }}>
-        {deals.map((d) => (
-          <div
-            key={d.id}
-            id={`vestora-deal-snapshot-${d.id}`}
-            style={{
-              width: 720, padding: 32, background: '#ffffff', color: '#0a0a0a',
-              font: '400 13.5px/1.5 var(--font-dm-sans), sans-serif',
-              border: '1px solid #ececec', borderRadius: 14,
-            }}
-          >
-            <h2 style={{ margin: 0, font: '600 22px/1.2 var(--font-dm-sans), sans-serif' }}>{d.titel || 'Immobilien-Analyse'}</h2>
-            <div style={{ color: '#6a6a6a', marginTop: 6 }}>{d.inputs.city || '—'} · {d.inputs.state}</div>
-          </div>
-        ))}
-      </div>
-
       {toast && (
         <div style={{
           position: 'fixed', bottom: 28, left: '50%', transform: 'translateX(-50%)',
@@ -386,7 +371,7 @@ function EmptyState() {
         Noch keine Exporte erstellt
       </h3>
       <p style={{ margin: 0, maxWidth: 380, font: '400 13.5px/1.5 var(--font-dm-sans), sans-serif', color: '#7a7a7a' }}>
-        Exportiere einen Deal als PDF, Excel oder Screenshot.
+        Exportiere einen Deal als PDF oder Excel.
       </p>
       <Link
         href="/dashboard/new"

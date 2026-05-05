@@ -5,11 +5,14 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import DealCard from './DealCard'
 import ExportDealModal, { type ExportFormat } from '@/components/calculator/ExportDealModal'
+import SaveDealModal from '@/components/calculator/SaveDealModal'
 import ExportsFlyout from './ExportsFlyout'
-import { loadDeals, deleteDeal as removeDeal, type SavedDeal } from '@/lib/deals-store'
+import { loadDeals, deleteDeal as removeDeal, updateDeal, type SavedDeal } from '@/lib/deals-store'
 import { calc, project10yr, dealState, dealScore } from '@/lib/calculator-engine'
 import { runExport } from '@/lib/exporters/run-export'
 import { countExportsByDeal, deleteExportsForDeal } from '@/lib/exports-store'
+import { getUsage, type UsagePlan } from '@/lib/usage-store'
+import { IMAGE_LIMITS } from '@/lib/usage-shared'
 
 type SortKey = 'date' | 'price' | 'score' | 'cashflow'
 
@@ -31,6 +34,14 @@ export default function DashboardClient() {
   const [toast, setToast] = useState<string | null>(null)
   const [exportsViewDeal, setExportsViewDeal] = useState<SavedDeal | null>(null)
   const [exportCounts, setExportCounts] = useState<Record<string, number>>({})
+  const [editTarget, setEditTarget] = useState<SavedDeal | null>(null)
+  const [userPlan, setUserPlan] = useState<UsagePlan>('free')
+
+  useEffect(() => {
+    let cancelled = false
+    void getUsage().then((u) => { if (!cancelled) setUserPlan(u.plan) })
+    return () => { cancelled = true }
+  }, [])
 
   const refreshCounts = useCallback(async () => {
     setExportCounts(await countExportsByDeal())
@@ -81,6 +92,36 @@ export default function DashboardClient() {
     setConfirmDelete(d)
   }, [])
 
+  const handleEdit = useCallback((d: SavedDeal) => {
+    setEditTarget(d)
+  }, [])
+
+  const submitEdit = useCallback(async (data: { titel: string; link: string; notizen: string; bilder: string[] }) => {
+    if (!editTarget) return
+    if (!data.titel.trim()) return
+    const planLimit = IMAGE_LIMITS[userPlan]
+    const originalCount = editTarget.bilder?.length ?? 0
+    const ceiling = Math.max(planLimit, originalCount)
+    if (data.bilder.length > ceiling) {
+      const planLabel = userPlan === 'pro' ? 'Pro' : userPlan === 'business' ? 'Business' : 'Free'
+      showToast(`Plan-Limit erreicht. Maximal ${planLimit} Bilder bei ${planLabel}.`)
+      return
+    }
+    const updated = await updateDeal(editTarget.id, {
+      titel: data.titel,
+      link: data.link,
+      notizen: data.notizen,
+      bilder: data.bilder,
+    })
+    if (!updated) {
+      showToast('Aktualisierung fehlgeschlagen.')
+      return
+    }
+    setDeals((arr) => arr.map((d) => (d.id === updated.id ? updated : d)))
+    setEditTarget(null)
+    showToast('Deal aktualisiert.')
+  }, [editTarget, showToast, userPlan])
+
   const confirmAndDelete = useCallback(async () => {
     if (!confirmDelete) return
     await removeDeal(confirmDelete.id)
@@ -110,7 +151,6 @@ export default function DashboardClient() {
       termYr,
       score,
       verdict,
-      pngTargetId: `vestora-deal-snapshot-${deal.id}`,
       dealId: deal.id,
     })
     refreshCounts()
@@ -198,6 +238,7 @@ export default function DashboardClient() {
                 deal={d}
                 exportCount={exportCounts[d.id] ?? 0}
                 onOpen={handleOpen}
+                onEdit={handleEdit}
                 onExport={(deal) => setExportTarget(deal)}
                 onDelete={handleDelete}
                 onShowExports={(deal) => setExportsViewDeal(deal)}
@@ -205,13 +246,6 @@ export default function DashboardClient() {
             ))}
           </div>
         )}
-      </div>
-
-      {/* Hidden snapshot targets — one per deal, used by PNG export */}
-      <div style={{ position: 'fixed', left: -10000, top: 0, pointerEvents: 'none', opacity: 0 }}>
-        {deals.map((d) => (
-          <SnapshotCard key={d.id} deal={d} />
-        ))}
       </div>
 
       {/* Delete confirmation */}
@@ -259,6 +293,17 @@ export default function DashboardClient() {
         onClose={() => { if (!exporting) setExportTarget(null) }}
         onExport={(f) => { void handleExport(f) }}
         busy={exporting}
+      />
+
+      {/* Edit-details modal — reuses SaveDealModal in edit mode */}
+      <SaveDealModal
+        open={editTarget !== null}
+        mode="edit"
+        defaultLink=""
+        plan={userPlan}
+        initial={editTarget ? { titel: editTarget.titel, link: editTarget.link, notizen: editTarget.notizen, bilder: editTarget.bilder } : undefined}
+        onClose={() => setEditTarget(null)}
+        onSave={(data) => { void submitEdit(data) }}
       />
 
       {/* Saved-exports flyout */}
@@ -374,42 +419,3 @@ function SortDropdown({ value, onChange }: { value: SortKey; onChange: (v: SortK
   )
 }
 
-function SnapshotCard({ deal }: { deal: SavedDeal }) {
-  const cf = deal.kpis.monatsCashflow
-  const cfColor = cf >= 0 ? '#1f8a65' : '#cf2d56'
-  return (
-    <div
-      id={`vestora-deal-snapshot-${deal.id}`}
-      style={{
-        width: 720, padding: 32, background: '#ffffff', color: '#0a0a0a',
-        font: '400 13.5px/1.5 var(--font-dm-sans), sans-serif',
-        display: 'flex', flexDirection: 'column', gap: 18,
-        border: '1px solid #ececec', borderRadius: 14,
-      }}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', borderBottom: '1px solid #ececec', paddingBottom: 12 }}>
-        <span style={{ font: '500 14px/1 var(--font-dm-sans), sans-serif' }}>brickscore</span>
-        <span style={{ color: '#7a7a7a', fontSize: 12 }}>{new Date(deal.datum).toLocaleDateString('de-DE')}</span>
-      </div>
-      <h2 style={{ margin: 0, font: '600 22px/1.2 var(--font-dm-sans), sans-serif' }}>{deal.titel || 'Immobilien-Analyse'}</h2>
-      <div style={{ color: '#6a6a6a' }}>{deal.inputs.city || '—'} · {deal.inputs.state}</div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
-        <Stat k="Kaufpreis" v={`€${(Number(deal.inputs.price) || 0).toLocaleString('de-DE')}`} />
-        <Stat k="Monats-Cashflow" v={`${cf >= 0 ? '+' : '−'}€${Math.abs(Math.round(cf)).toLocaleString('de-DE')}`} color={cfColor} />
-        <Stat k="Deal-Score" v={`${deal.kpis.dealScore} / 100`} />
-        <Stat k="Netto-Rendite" v={`${deal.kpis.nettoRendite.toFixed(1).replace('.', ',')} %`} />
-        <Stat k="Cash-on-Cash" v={`${deal.kpis.cashOnCash.toFixed(1).replace('.', ',')} %`} />
-        <Stat k="LTV" v={`${deal.kpis.ltv.toFixed(1).replace('.', ',')} %`} />
-      </div>
-    </div>
-  )
-}
-
-function Stat({ k, v, color }: { k: string; v: string; color?: string }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <span style={{ font: '500 11px/1 var(--font-dm-sans), sans-serif', letterSpacing: 0.6, textTransform: 'uppercase', color: '#9a9a9a' }}>{k}</span>
-      <span style={{ font: '500 18px/1 var(--font-jetbrains-mono), monospace', color: color || '#0a0a0a' }}>{v}</span>
-    </div>
-  )
-}

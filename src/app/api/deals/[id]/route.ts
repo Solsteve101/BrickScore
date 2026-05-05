@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { getCurrentDbUser } from '@/lib/db-user'
+import { IMAGE_LIMITS, normalizePlan } from '@/lib/usage-shared'
 import type { SavedDeal } from '@/lib/deals-store'
 
 type DealRow = {
@@ -44,6 +45,23 @@ export async function PATCH(req: Request, ctx: Ctx) {
 
   const patch = (await req.json()) as Partial<Omit<SavedDeal, 'id'>>
   const currentBlob = (existing.data ?? {}) as Partial<Omit<SavedDeal, 'id' | 'titel'>>
+
+  if (patch.bilder !== undefined) {
+    const plan = normalizePlan(user.plan)
+    const planLimit = IMAGE_LIMITS[plan]
+    const originalCount = currentBlob.bilder?.length ?? 0
+    // Free: cannot upload new images, but may keep/remove grandfathered ones.
+    // The submitted array is allowed up to max(planLimit, originalCount).
+    const ceiling = Math.max(planLimit, originalCount)
+    if (patch.bilder.length > ceiling) {
+      const planLabel = plan === 'pro' ? 'Pro' : plan === 'business' ? 'Business' : 'Free'
+      return NextResponse.json(
+        { error: 'plan_limit', message: `Plan-Limit erreicht. Maximal ${planLimit} Bilder bei ${planLabel}.` },
+        { status: 403 },
+      )
+    }
+  }
+
   const mergedBlob = {
     link: patch.link ?? currentBlob.link ?? '',
     notizen: patch.notizen ?? currentBlob.notizen ?? '',

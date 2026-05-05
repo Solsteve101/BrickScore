@@ -153,11 +153,26 @@ function setOpacity(doc: jsPDF, opacity: number): boolean {
 function addDiagonalWatermark(doc: jsPDF) {
   const w = doc.internal.pageSize.getWidth()
   const h = doc.internal.pageSize.getHeight()
-  const restored = setOpacity(doc, 0.12)
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(56)
-  doc.setTextColor(120, 120, 120)
-  doc.text(s('BrickScore - brickscore.de'), w / 2, h / 2, { align: 'center', angle: 45 })
+  // Tiled fabric-pattern watermark: rotated repeats in a brick-staggered grid
+  // that overpaints the page edges so no corner is left empty. Low opacity
+  // keeps the underlying content (numbers, tables) clearly legible.
+  const TILE_TEXT = 'brickscore  ·  brickscore  ·  brickscore'
+  const STEP_X = 300 // horizontal spacing between tile anchors
+  const STEP_Y = 150 // vertical spacing between rows
+  const ROTATION = -30 // degrees, diagonal bottom-left → top-right
+  const restored = setOpacity(doc, 0.35)
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(20)
+  doc.setTextColor(170, 170, 170)
+  // Overdraw past the page edges so rotated tiles still cover the corners.
+  let row = 0
+  for (let y = -STEP_Y; y < h + STEP_Y * 2; y += STEP_Y) {
+    const offset = (row % 2) * (STEP_X / 2)
+    for (let x = -STEP_X; x < w + STEP_X * 2; x += STEP_X) {
+      doc.text(s(TILE_TEXT), x + offset, y, { align: 'center', angle: ROTATION })
+    }
+    row++
+  }
   if (restored) setOpacity(doc, 1)
   doc.setTextColor(...COLOR_INK)
 }

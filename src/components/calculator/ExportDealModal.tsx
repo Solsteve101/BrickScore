@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 
-export type ExportFormat = 'pdf' | 'xlsx' | 'png'
+export type ExportFormat = 'pdf' | 'xlsx'
 
 interface ExportDealModalProps {
   open: boolean
@@ -37,18 +37,6 @@ const OPTIONS: { key: ExportFormat; title: string; desc: string; icon: React.Rea
         <line x1="8" y1="13" x2="16" y2="13" />
         <line x1="8" y1="17" x2="16" y2="17" />
         <line x1="12" y1="11" x2="12" y2="19" />
-      </svg>
-    ),
-  },
-  {
-    key: 'png',
-    title: 'Screenshot',
-    desc: 'Schneller Überblick als Bild',
-    icon: (
-      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="3" width="18" height="18" rx="2" />
-        <circle cx="8.5" cy="8.5" r="1.5" />
-        <polyline points="21 15 16 10 5 21" />
       </svg>
     ),
   },
