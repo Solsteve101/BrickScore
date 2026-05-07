@@ -68,14 +68,12 @@ export default function ComparisonTable() {
           maxWidth: 1000,
           margin: '0 auto',
           borderRadius: 20,
-          overflowX: 'auto',
-          WebkitOverflowScrolling: 'touch',
           boxShadow: '0 4px 16px rgba(0,0,0,0.06), 0 20px 56px rgba(0,0,0,0.09)',
         }}
       >
-       <div className="bs-compare-table-inner" style={{ minWidth: 720 }}>
+       <div className="bs-compare-table-inner" style={{ width: '100%' }}>
         {/* Header */}
-        <div className="bs-compare-row" style={{ display: 'grid', gridTemplateColumns: '1fr 160px 180px 190px', background: '#fafafa', borderBottom: '1px solid #efefef' }}>
+        <div className="bs-compare-row" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr 1fr', background: '#fafafa', borderBottom: '1px solid #efefef' }}>
           <div className="bs-compare-feature-cell" style={{ padding: '20px 28px', font: '500 11px/1 var(--font-dm-sans)', color: '#aaaaaa', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
             Feature
           </div>
@@ -104,7 +102,7 @@ export default function ComparisonTable() {
             className="bs-compare-row"
             style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 160px 180px 190px',
+              gridTemplateColumns: '1.5fr 1fr 1fr 1fr',
               borderBottom: i < ROWS.length - 1 ? '1px solid #f5f5f5' : 'none',
               background: '#ffffff',
             }}

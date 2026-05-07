@@ -38,7 +38,7 @@ export async function runExport(input: RunExportInput): Promise<{ filename: stri
   const result =
     format === 'pdf'
       ? await exportPdf({ ...rest, plan })
-      : exportXlsx({
+      : await exportXlsx({
           titel: rest.titel,
           inputs: rest.inputs,
           result: rest.result,

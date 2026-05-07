@@ -1,4 +1,13 @@
-import XLSX from 'xlsx-js-style'
+import type * as XLSX from 'xlsx-js-style'
+
+let _XLSX: typeof import('xlsx-js-style') | null = null
+async function ensureXlsxLib(): Promise<typeof import('xlsx-js-style')> {
+  if (!_XLSX) {
+    const mod = await import('xlsx-js-style')
+    _XLSX = (mod as unknown as { default?: typeof import('xlsx-js-style') }).default ?? mod
+  }
+  return _XLSX
+}
 import type { CalcInputs, CalcResult, ProjectionRow } from '../calculator-engine'
 import type { UsagePlan } from '../usage-store'
 import { fmtDateDe, safeFilename } from './format-helpers'
@@ -312,7 +321,7 @@ function aoaToSheet(rows: Cell[][]): XLSX.WorkSheet {
   let maxC = 0
   rows.forEach((row, r) => {
     row.forEach((cell, c) => {
-      const addr = XLSX.utils.encode_cell({ r, c })
+      const addr = _XLSX!.utils.encode_cell({ r, c })
       const out: XLSX.CellObject = { v: cell.v as string | number, t: cell.t }
       if (cell.z) out.z = cell.z
       if (cell.s) (out as unknown as { s?: StyleObj }).s = cell.s
@@ -320,11 +329,12 @@ function aoaToSheet(rows: Cell[][]): XLSX.WorkSheet {
       if (c > maxC) maxC = c
     })
   })
-  ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: rows.length - 1, c: maxC } })
+  ws['!ref'] = _XLSX!.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: rows.length - 1, c: maxC } })
   return ws
 }
 
-export function exportXlsx(payload: XlsxPayload): ExportResult {
+export async function exportXlsx(payload: XlsxPayload): Promise<ExportResult> {
+  await ensureXlsxLib()
   const plan: UsagePlan = payload.plan ?? 'free'
   const build: BuildPayload = {
     titel: payload.titel,
@@ -397,11 +407,11 @@ export function exportXlsx(payload: XlsxPayload): ExportResult {
   ws['!merges'] = merges
   applyHeaderFooter(ws, plan)
 
-  const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, ws, 'Immobilien-Analyse')
+  const wb = _XLSX!.utils.book_new()
+  _XLSX!.utils.book_append_sheet(wb, ws, 'Immobilien-Analyse')
 
   const filename = `${safeFilename(payload.titel || 'BrickScore_Deal')}.xlsx`
-  const buffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' }) as ArrayBuffer
+  const buffer = _XLSX!.write(wb, { bookType: 'xlsx', type: 'array' }) as ArrayBuffer
   const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
   return { blob, filename }
 }

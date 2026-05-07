@@ -8,13 +8,15 @@ interface BrickScoreLogoProps {
 export function BrickScoreLogo({ height = 14, color = '#1C1C1C', className = '', style }: BrickScoreLogoProps) {
   const viewBox = '0 0 332 249'
   const aspectRatio = 332 / 249
-  const width = Math.round(height * aspectRatio)
+  const width = height * aspectRatio
   return (
     <svg
       width={width}
       height={height}
       viewBox={viewBox}
       fill="none"
+      preserveAspectRatio="xMidYMid meet"
+      shapeRendering="geometricPrecision"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
       style={style}

@@ -1,5 +1,18 @@
-import jsPDF from 'jspdf'
-import autoTable from 'jspdf-autotable'
+import type jsPDFClass from 'jspdf'
+type jsPDF = jsPDFClass
+
+let _jsPDF: typeof jsPDFClass | null = null
+let _autoTable: typeof import('jspdf-autotable').default | null = null
+async function ensurePdfDeps(): Promise<void> {
+  if (!_jsPDF) {
+    const mod = await import('jspdf')
+    _jsPDF = (mod as unknown as { default: typeof jsPDFClass }).default ?? (mod as unknown as typeof jsPDFClass)
+  }
+  if (!_autoTable) {
+    const mod = await import('jspdf-autotable')
+    _autoTable = (mod as { default: typeof import('jspdf-autotable').default }).default
+  }
+}
 import type { CalcInputs, CalcResult, ProjectionRow } from '../calculator-engine'
 import { STATES } from '../calculator-engine'
 import type { UsagePlan } from '../usage-store'
@@ -260,7 +273,7 @@ function renderKvTable(
     if (r.cashflowSign) cashflowColors.set(i, r.cashflowSign === 'positive' ? COLOR_GREEN : COLOR_RED)
   })
 
-  autoTable(doc, {
+  _autoTable!(doc, {
     startY,
     head: [[s(headerLabel), s(valueHeader)]],
     body: rows.map((r) => [s(r.label), s(r.value)]),
@@ -287,7 +300,7 @@ function renderNkTable(doc: jsPDF, startY: number, rows: NkRow[]): void {
   const totalIdxs = new Set<number>()
   rows.forEach((r, i) => { if (r.total) totalIdxs.add(i) })
 
-  autoTable(doc, {
+  _autoTable!(doc, {
     startY,
     head: [[s('Kaufnebenkosten'), s('Satz'), s('Betrag')]],
     body: rows.map((r) => [s(r.position), s(r.satz), s(r.betrag)]),
@@ -310,7 +323,7 @@ function renderNkTable(doc: jsPDF, startY: number, rows: NkRow[]): void {
 
 function renderProjectionAutotable(doc: jsPDF, startY: number, rows: ProjectionTableRow[]): void {
   const lastIdx = rows.length - 1
-  autoTable(doc, {
+  _autoTable!(doc, {
     startY,
     head: [[s('Jahr'), s('Restschuld'), s('Tilgung kum.'), s('Jahres-Cashflow'), s('Cashflow kum.')]],
     body: rows.map((r) => [s(r.jahr), s(r.restschuld), s(r.tilgungKum), s(r.jahresCf), s(r.cfKum)]),
@@ -415,8 +428,9 @@ function renderProjektion(doc: jsPDF, payload: PdfPayload, build: BuildPayload) 
 // ─── ENTRY ───────────────────────────────────────────────
 
 export async function exportPdf(payload: PdfPayload): Promise<ExportResult> {
+  await ensurePdfDeps()
   const plan: UsagePlan = payload.plan ?? 'free'
-  const doc = new jsPDF({ unit: 'pt', format: 'a4' })
+  const doc = new _jsPDF!({ unit: 'pt', format: 'a4' })
 
   const build: BuildPayload = {
     titel: payload.titel,
