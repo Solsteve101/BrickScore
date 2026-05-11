@@ -2,7 +2,7 @@ type CellValue = 'yes' | 'no' | 'partial'
 
 const ROWS: { feature: string; bs: CellValue; excel: CellValue; other: CellValue }[] = [
   { feature: 'URL-Import aus Immoportalen',                  bs: 'yes', excel: 'no',      other: 'no'      },
-  { feature: 'Automatische Kaufnebenkosten nach Bundesland', bs: 'yes', excel: 'no',      other: 'partial' },
+  { feature: 'Automatische Kaufnebenkosten', bs: 'yes', excel: 'no',      other: 'partial' },
   { feature: 'Deal Score (0–100)',                           bs: 'yes', excel: 'no',      other: 'no'      },
   { feature: '5 KPIs sofort berechnet',                     bs: 'yes', excel: 'partial', other: 'partial' },
   { feature: 'Cashflow-Projektion (10+ Jahre)',              bs: 'yes', excel: 'partial', other: 'yes'     },
@@ -73,7 +73,7 @@ export default function ComparisonTable() {
       >
        <div className="bs-compare-table-inner" style={{ width: '100%' }}>
         {/* Header */}
-        <div className="bs-compare-row" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr 1fr', background: '#fafafa', borderBottom: '1px solid #efefef' }}>
+        <div className="bs-compare-row" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)', background: '#fafafa', borderBottom: '1px solid #efefef' }}>
           <div className="bs-compare-feature-cell" style={{ padding: '20px 28px', font: '500 11px/1 var(--font-dm-sans)', color: '#aaaaaa', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
             Feature
           </div>
@@ -102,7 +102,7 @@ export default function ComparisonTable() {
             className="bs-compare-row"
             style={{
               display: 'grid',
-              gridTemplateColumns: '1.5fr 1fr 1fr 1fr',
+              gridTemplateColumns: 'minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)',
               borderBottom: i < ROWS.length - 1 ? '1px solid #f5f5f5' : 'none',
               background: '#ffffff',
             }}

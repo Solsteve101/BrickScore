@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { signIn, useSession } from 'next-auth/react'
 import AuthShell from '@/components/auth/AuthShell'
-import { isValidReferralCodeFormat, setAppliedReferralCode } from '@/lib/referral-store'
+import { capturePendingReferralCode, claimPendingReferral, isValidReferralCode } from '@/lib/referral-client'
 
 export default function SignupPage() {
   const router = useRouter()
@@ -32,8 +32,8 @@ export default function SignupPage() {
     setRefError(null)
     if (password.length < 8) { setError('Passwort muss mindestens 8 Zeichen haben.'); return }
     if (password !== confirm) { setError('Die Passwörter stimmen nicht überein.'); return }
-    if (refCode.trim() && !isValidReferralCodeFormat(refCode)) {
-      setRefError('Ungültiges Code-Format. Erwartet: BRICK-XXXX')
+    if (refCode.trim() && !isValidReferralCode(refCode)) {
+      setRefError('Ungültiges Code-Format. Erwartet: 8 Zeichen (A-Z, 2-9).')
       return
     }
     setLoading('creds')
@@ -49,7 +49,7 @@ export default function SignupPage() {
       setLoading(null)
       return
     }
-    if (refCode.trim()) setAppliedReferralCode(refCode)
+    if (refCode.trim()) capturePendingReferralCode(refCode)
     const signInRes = await signIn('credentials', { email, password, redirect: false })
     if (signInRes?.error) {
       setError('Konto erstellt — bitte jetzt anmelden.')
@@ -57,6 +57,7 @@ export default function SignupPage() {
       router.push('/login')
       return
     }
+    void claimPendingReferral()
     router.push('/')
     router.refresh()
   }

@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { getUsage, setPlan as persistPlan, type UsagePlan, type BillingInterval } from '@/lib/usage-store'
-import { getOrCreateOwnReferralCode } from '@/lib/referral-store'
 import { pushToast } from '@/lib/toast'
+import Link from 'next/link'
 
 type Cycle = 'monthly' | 'yearly'
 
@@ -38,27 +38,16 @@ function fmtEur(n: number): string {
 }
 
 export default function SubscriptionClient() {
-  const { data: session } = useSession()
-  const userId = session?.user?.id
-
-  const [referralCode, setReferralCode] = useState('BRICK-XXXX')
-  const [referralUrl, setReferralUrl] = useState('https://brickscore.de/ref/BRICK-XXXX')
+  useSession()
 
   const [usageLoaded, setUsageLoaded] = useState(false)
   const [plan, setPlan] = useState<UsagePlan>('free')
   const [planInterval, setPlanInterval] = useState<BillingInterval | null>(null)
   const [tokensRemaining, setTokensRemaining] = useState(0)
   const [tokensMax, setTokensMax] = useState(20)
-  const [copied, setCopied] = useState<'code' | 'url' | null>(null)
   const [cycle, setCycle] = useState<Cycle>('monthly')
   const [busyPlan, setBusyPlan] = useState<PlanKey | null>(null)
   const [portalBusy, setPortalBusy] = useState(false)
-
-  useEffect(() => {
-    const code = getOrCreateOwnReferralCode(userId ?? null)
-    setReferralCode(code)
-    setReferralUrl(`https://brickscore.de/ref/${code}`)
-  }, [userId])
 
   useEffect(() => {
     let cancelled = false
@@ -170,14 +159,6 @@ export default function SubscriptionClient() {
 
   const used = Math.max(0, tokensMax - tokensRemaining)
   const pct = tokensMax > 0 ? Math.min(100, Math.round((used / tokensMax) * 100)) : 0
-
-  const copy = async (val: string, key: 'code' | 'url') => {
-    try {
-      await navigator.clipboard.writeText(val)
-      setCopied(key)
-      setTimeout(() => setCopied(null), 1400)
-    } catch { /* ignore */ }
-  }
 
   return (
     <div className="bs-sub-page" style={{ padding: '36px 40px 60px' }}>
@@ -332,8 +313,18 @@ export default function SubscriptionClient() {
           </p>
         </div>
 
-        <CopyRow label="Referral-Code" value={referralCode} copied={copied === 'code'} onCopy={() => void copy(referralCode, 'code')} mono />
-        <CopyRow label="Share-Link" value={referralUrl} copied={copied === 'url'} onCopy={() => void copy(referralUrl, 'url')} />
+        <Link
+          href="/dashboard/referrals"
+          style={{
+            alignSelf: 'flex-start',
+            padding: '10px 16px', borderRadius: 9,
+            background: '#1C1C1C', color: '#FFFFFF',
+            font: '500 13.5px/1 var(--font-dm-sans), sans-serif',
+            textDecoration: 'none',
+          }}
+        >
+          Empfehlungen öffnen →
+        </Link>
       </section>
     </div>
   )
@@ -546,45 +537,3 @@ function PlanCard({
   )
 }
 
-function CopyRow({ label, value, copied, onCopy, mono }: { label: string; value: string; copied: boolean; onCopy: () => void; mono?: boolean }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <span style={{ font: '500 11px/1 var(--font-dm-sans), sans-serif', letterSpacing: 0.6, textTransform: 'uppercase', color: '#9a9a9a' }}>
-        {label}
-      </span>
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 8,
-        padding: '4px 4px 4px 12px', borderRadius: 9,
-        background: '#ffffff', border: '1px solid #ececec',
-      }}>
-        <span style={{
-          flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          font: mono
-            ? '500 14px/1 var(--font-jetbrains-mono), monospace'
-            : '400 13.5px/1 var(--font-dm-sans), sans-serif',
-          color: '#0a0a0a',
-        }}>
-          {value}
-        </span>
-        <button
-          type="button"
-          onClick={onCopy}
-          style={{
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            padding: '8px 16px', borderRadius: 10,
-            background: copied ? 'rgba(31,138,101,0.12)' : '#1C1C1C',
-            color: copied ? '#1a6a45' : '#FFFFFF',
-            border: copied ? '1px solid rgba(31,138,101,0.3)' : 'none',
-            font: '500 14px/1 var(--font-dm-sans), sans-serif',
-            cursor: 'pointer', whiteSpace: 'nowrap',
-            transition: 'all 0.2s ease',
-          }}
-          onMouseEnter={(e) => { if (!copied) e.currentTarget.style.background = '#2C2C2C' }}
-          onMouseLeave={(e) => { if (!copied) e.currentTarget.style.background = '#1C1C1C' }}
-        >
-          {copied ? 'Kopiert' : 'Kopieren'}
-        </button>
-      </div>
-    </div>
-  )
-}

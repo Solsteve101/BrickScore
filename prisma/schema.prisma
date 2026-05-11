@@ -9,23 +9,52 @@ datasource db {
 }
 
 model User {
-  id               String    @id @default(cuid())
-  name             String?
-  email            String    @unique
-  emailVerified    DateTime?
-  image            String?
-  password         String?
-  plan             String    @default("free")
-  billingInterval  String?
-  tokensRemaining  Int       @default(30)
-  weekStart        String    @default("")
-  exportsCount     Int       @default(0)
-  stripeCustomerId String?
-  deals            Deal[]
-  exports          Export[]
-  tokenUsages      TokenUsage[]
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id                       String           @id @default(cuid())
+  name                     String?
+  email                    String           @unique
+  emailVerified            DateTime?
+  image                    String?
+  password                 String?
+  plan                     String           @default("free")
+  billingInterval          String?
+  tokensRemaining          Int              @default(30)
+  weekStart                String           @default("")
+  exportsCount             Int              @default(0)
+  stripeCustomerId         String?
+  referralCode             String?          @unique
+  referredByUserId         String?
+  referredBy               User?            @relation("UserReferrals", fields: [referredByUserId], references: [id])
+  referrals                User[]           @relation("UserReferrals")
+  subscriptionCancelledAt  DateTime?
+  earnedCredits            ReferralCredit[] @relation("CreditsEarned")
+  triggeredCredits         ReferralCredit[] @relation("CreditsTriggered")
+  deals                    Deal[]
+  exports                  Export[]
+  tokenUsages              TokenUsage[]
+  createdAt                DateTime         @default(now())
+  updatedAt                DateTime         @updatedAt
+}
+
+model ReferralCredit {
+  id              String    @id @default(cuid())
+  referrerUserId  String
+  referrerUser    User      @relation("CreditsEarned", fields: [referrerUserId], references: [id], onDelete: Cascade)
+  referredUserId  String
+  referredUser    User      @relation("CreditsTriggered", fields: [referredUserId], references: [id], onDelete: Cascade)
+  stripeInvoiceId String    @unique
+  amountCents     Int
+  currency        String    @default("eur")
+  status          String
+  availableAt     DateTime
+  usedAt          DateTime?
+  stripeCreditId  String?
+  expiresAt       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([referrerUserId, status])
+  @@index([availableAt, status])
+  @@index([expiresAt, status])
 }
 
 model Deal {

@@ -50,6 +50,15 @@ const CARD_ICON = (
     <line x1="2" y1="10" x2="22" y2="10" />
   </svg>
 )
+const GIFT_ICON = (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="20 12 20 22 4 22 4 12" />
+    <rect x="2" y="7" width="20" height="5" />
+    <line x1="12" y1="22" x2="12" y2="7" />
+    <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" />
+    <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" />
+  </svg>
+)
 const SETTINGS_ICON = (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="12" r="3" />
@@ -65,6 +74,7 @@ const GROUP_KONTO: NavItem[] = [
 const GROUP_NUTZUNG: NavItem[] = [
   { key: 'usage', href: '/dashboard/usage', label: 'Nutzung', icon: USAGE_ICON },
   { key: 'subscription', href: '/dashboard/subscription', label: 'Abonnement', icon: CARD_ICON },
+  { key: 'referrals', href: '/dashboard/referrals', label: 'Empfehlungen', icon: GIFT_ICON },
 ]
 const GROUP_SETTINGS: NavItem[] = [
   { key: 'settings', href: '/dashboard/settings', label: 'Einstellungen', icon: SETTINGS_ICON },
