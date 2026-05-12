@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
   const pending = await prisma.referralCredit.findMany({
     where: { status: 'pending', availableAt: { lte: now } },
     include: {
-      referrerUser: { select: { id: true, stripeCustomerId: true } },
+      referrerUser: { select: { id: true, email: true, stripeCustomerId: true } },
       referredUser: { select: { email: true } },
     },
   })
@@ -34,16 +34,37 @@ export async function GET(req: NextRequest) {
     const referrer = credit.referrerUser
     let stripeCreditId: string | null = null
     try {
-      if (referrer?.stripeCustomerId) {
-        const stripe = getStripe()
-        const balanceTx = await stripe.customers.createBalanceTransaction(referrer.stripeCustomerId, {
-          amount: -credit.amountCents,
-          currency: credit.currency,
-          description: `Referral-Guthaben für ${credit.referredUser?.email ?? 'unbekannt'}`,
-          metadata: { referralCreditId: credit.id },
-        })
-        stripeCreditId = balanceTx.id
+      if (!referrer) {
+        throw new Error('referrer_missing')
       }
+
+      const stripe = getStripe()
+      let customerId = referrer.stripeCustomerId
+
+      // Lazy: wenn Referrer noch keinen Stripe-Customer hat, erst anlegen
+      if (!customerId) {
+        if (!referrer.email) {
+          throw new Error('referrer_email_missing')
+        }
+        const newCustomer = await stripe.customers.create({
+          email: referrer.email,
+          metadata: { userId: referrer.id, source: 'referral_credit_lazy' },
+        })
+        customerId = newCustomer.id
+        await prisma.user.update({
+          where: { id: referrer.id },
+          data: { stripeCustomerId: customerId },
+        })
+      }
+
+      const balanceTx = await stripe.customers.createBalanceTransaction(customerId, {
+        amount: -credit.amountCents,
+        currency: credit.currency,
+        description: `Referral-Guthaben für ${credit.referredUser?.email ?? 'unbekannt'}`,
+        metadata: { referralCreditId: credit.id },
+      })
+      stripeCreditId = balanceTx.id
+
       await prisma.referralCredit.update({
         where: { id: credit.id },
         data: { status: 'active', stripeCreditId },
