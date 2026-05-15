@@ -49,7 +49,7 @@ export default function ReferralsClient() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
-  const [origin, setOrigin] = useState('https://brickscore.de')
+  const [origin, setOrigin] = useState('https://brickscore.vercel.app')
 
   useEffect(() => {
     if (typeof window !== 'undefined') setOrigin(window.location.origin)
