@@ -13,13 +13,13 @@ import FooterSection from '@/components/homepage/FooterSection'
 export const metadata: Metadata = {
   openGraph: {
     type: 'website',
-    url: 'https://brickscore.vercel.app',
+    url: '/',
     title: 'brickscore — Immobilien-Investment Analyse',
     description: 'Immobilien-Inserat einfügen, Rendite berechnen. Cashflow, Nettorendite, Cash-on-Cash Return und Deal Score in 30 Sekunden.',
     siteName: 'brickscore',
     images: [
       {
-        url: 'https://brickscore.vercel.app/og-image.png',
+        url: '/og-image.png',
         width: 1200,
         height: 630,
         alt: 'brickscore Logo',
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'brickscore — Immobilien-Investment Analyse',
     description: 'Immobilien-Inserat einfügen, Rendite berechnen. Cashflow, Nettorendite, Cash-on-Cash Return und Deal Score in 30 Sekunden.',
-    images: ['https://brickscore.vercel.app/og-image.png'],
+    images: ['/og-image.png'],
   },
 }
 

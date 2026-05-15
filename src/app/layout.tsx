@@ -14,7 +14,7 @@ const dmSans = DM_Sans({
 })
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://brickscore.de'),
+  metadataBase: new URL('https://brickscore.vercel.app'),
   title: 'brickscore — Immobilien-Investment Analyse',
   description:
     'Immobilien-Inserat einfügen, Rendite berechnen. Cashflow, Nettorendite, Cash-on-Cash Return und Deal Score in 30 Sekunden. Kostenlos starten.',
@@ -36,7 +36,7 @@ export const metadata: Metadata = {
     title: 'brickscore — Immobilien-Investment Analyse',
     description:
       'Immobilien-Inserat einfügen, Rendite berechnen. Cashflow, Nettorendite, Cash-on-Cash Return und Deal Score in 30 Sekunden.',
-    url: 'https://brickscore.de',
+    url: 'https://brickscore.vercel.app',
     siteName: 'brickscore',
     images: [
       {
