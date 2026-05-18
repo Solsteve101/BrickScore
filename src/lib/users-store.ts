@@ -8,6 +8,7 @@ export interface StoredUser {
   image?: string | null
   passwordHash?: string | null
   provider: 'credentials' | 'google'
+  emailVerified: Date | null
   createdAt: string
 }
 
@@ -17,6 +18,7 @@ type PrismaUserRow = {
   name: string | null
   image: string | null
   password: string | null
+  emailVerified: Date | null
   createdAt: Date
 }
 
@@ -31,6 +33,7 @@ function toStored(u: PrismaUserRow): StoredUser {
     image: u.image,
     passwordHash: u.password,
     provider: u.password ? 'credentials' : 'google',
+    emailVerified: u.emailVerified,
     createdAt: u.createdAt.toISOString(),
   }
 }
@@ -81,6 +84,10 @@ export async function deleteUserById(id: string): Promise<boolean> {
   } catch {
     return false
   }
+}
+
+export async function markEmailVerified(id: string): Promise<void> {
+  await prisma.user.update({ where: { id }, data: { emailVerified: new Date() } })
 }
 
 export async function updateUserEmail(id: string, newEmail: string): Promise<StoredUser | null> {

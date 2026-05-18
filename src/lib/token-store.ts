@@ -1,5 +1,7 @@
-import { promises as fs } from 'fs'
-import path from 'path'
+import { prisma } from './prisma'
+
+const ONE_HOUR_MS = 60 * 60 * 1000
+const ONE_DAY_MS = 24 * 60 * 60 * 1000
 
 export interface ResetToken {
   token: string
@@ -15,81 +17,211 @@ export interface EmailToken {
   expiresAt: string // ISO
 }
 
-const RESET_PATH = path.join(process.cwd(), 'src', 'data', 'reset-tokens.json')
-const EMAIL_PATH = path.join(process.cwd(), 'src', 'data', 'email-tokens.json')
-
-const ONE_HOUR_MS = 60 * 60 * 1000
-
-async function readJson<T>(p: string): Promise<T[]> {
-  try {
-    const raw = await fs.readFile(p, 'utf8')
-    const parsed = JSON.parse(raw) as unknown
-    return Array.isArray(parsed) ? parsed as T[] : []
-  } catch {
-    return []
-  }
+export interface SignupToken {
+  token: string
+  userId: string
+  email: string
+  expiresAt: string // ISO
 }
 
-async function writeJson<T>(p: string, data: T[]): Promise<void> {
-  await fs.writeFile(p, JSON.stringify(data, null, 2) + '\n', 'utf8')
-}
-
-function isFresh(expiresAt: string): boolean {
-  return new Date(expiresAt).getTime() > Date.now()
+async function emailToUserId(email: string): Promise<string | null> {
+  const u = await prisma.user.findUnique({
+    where: { email: email.toLowerCase() },
+    select: { id: true },
+  })
+  return u?.id ?? null
 }
 
 // ─── Reset tokens ──────────────────────────────────────────
 
 export async function createResetToken(userId: string, email: string): Promise<ResetToken> {
-  const all = await readJson<ResetToken>(RESET_PATH)
-  // Drop expired + any prior tokens for this user
-  const cleaned = all.filter((t) => isFresh(t.expiresAt) && t.userId !== userId)
-  const created: ResetToken = {
-    token: crypto.randomUUID(),
+  const normalized = email.toLowerCase().trim()
+
+  // Invalidate any prior open reset tokens for this email
+  await prisma.verificationToken.updateMany({
+    where: { email: normalized, type: 'reset_password', usedAt: null },
+    data: { usedAt: new Date() },
+  })
+
+  const expiresAt = new Date(Date.now() + ONE_HOUR_MS)
+  const created = await prisma.verificationToken.create({
+    data: {
+      token: crypto.randomUUID(),
+      email: normalized,
+      type: 'reset_password',
+      expiresAt,
+    },
+  })
+
+  return {
+    token: created.token,
     userId,
-    email,
-    expiresAt: new Date(Date.now() + ONE_HOUR_MS).toISOString(),
+    email: normalized,
+    expiresAt: expiresAt.toISOString(),
   }
-  cleaned.push(created)
-  await writeJson(RESET_PATH, cleaned)
-  return created
 }
 
 export async function consumeResetToken(token: string): Promise<ResetToken | null> {
-  const all = await readJson<ResetToken>(RESET_PATH)
-  const found = all.find((t) => t.token === token && isFresh(t.expiresAt))
-  if (!found) return null
-  const remaining = all.filter((t) => t.token !== token && isFresh(t.expiresAt))
-  await writeJson(RESET_PATH, remaining)
-  return found
+  const tk = await prisma.verificationToken.findUnique({ where: { token } })
+  if (!tk) return null
+  if (tk.type !== 'reset_password') return null
+  if (tk.usedAt) return null
+  if (tk.expiresAt.getTime() <= Date.now()) return null
+
+  const userId = await emailToUserId(tk.email)
+  if (!userId) return null
+
+  await prisma.verificationToken.update({
+    where: { token },
+    data: { usedAt: new Date() },
+  })
+
+  return {
+    token: tk.token,
+    userId,
+    email: tk.email,
+    expiresAt: tk.expiresAt.toISOString(),
+  }
 }
 
 export async function findResetToken(token: string): Promise<ResetToken | null> {
-  const all = await readJson<ResetToken>(RESET_PATH)
-  return all.find((t) => t.token === token && isFresh(t.expiresAt)) ?? null
+  const tk = await prisma.verificationToken.findUnique({ where: { token } })
+  if (!tk) return null
+  if (tk.type !== 'reset_password') return null
+  if (tk.usedAt) return null
+  if (tk.expiresAt.getTime() <= Date.now()) return null
+
+  const userId = await emailToUserId(tk.email)
+  if (!userId) return null
+
+  return {
+    token: tk.token,
+    userId,
+    email: tk.email,
+    expiresAt: tk.expiresAt.toISOString(),
+  }
 }
 
 // ─── Email change tokens ──────────────────────────────────
 
 export async function createEmailToken(userId: string, newEmail: string): Promise<EmailToken> {
-  const all = await readJson<EmailToken>(EMAIL_PATH)
-  const cleaned = all.filter((t) => isFresh(t.expiresAt) && t.userId !== userId)
-  const created: EmailToken = {
-    token: crypto.randomUUID(),
+  // Look up the user's current email so we can store it for traceability.
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { email: true },
+  })
+  if (!user) throw new Error('user_not_found')
+
+  const currentEmail = user.email.toLowerCase()
+  const target = newEmail.toLowerCase().trim()
+
+  // Invalidate prior open change_email tokens for this user
+  await prisma.verificationToken.updateMany({
+    where: { email: currentEmail, type: 'change_email', usedAt: null },
+    data: { usedAt: new Date() },
+  })
+
+  const expiresAt = new Date(Date.now() + ONE_HOUR_MS)
+  const created = await prisma.verificationToken.create({
+    data: {
+      token: crypto.randomUUID(),
+      email: currentEmail,
+      type: 'change_email',
+      newEmail: target,
+      expiresAt,
+    },
+  })
+
+  return {
+    token: created.token,
     userId,
-    newEmail: newEmail.toLowerCase().trim(),
-    expiresAt: new Date(Date.now() + ONE_HOUR_MS).toISOString(),
+    newEmail: target,
+    expiresAt: expiresAt.toISOString(),
   }
-  cleaned.push(created)
-  await writeJson(EMAIL_PATH, cleaned)
-  return created
 }
 
 export async function consumeEmailToken(token: string): Promise<EmailToken | null> {
-  const all = await readJson<EmailToken>(EMAIL_PATH)
-  const found = all.find((t) => t.token === token && isFresh(t.expiresAt))
-  if (!found) return null
-  const remaining = all.filter((t) => t.token !== token && isFresh(t.expiresAt))
-  await writeJson(EMAIL_PATH, remaining)
-  return found
+  const tk = await prisma.verificationToken.findUnique({ where: { token } })
+  if (!tk) return null
+  if (tk.type !== 'change_email') return null
+  if (tk.usedAt) return null
+  if (tk.expiresAt.getTime() <= Date.now()) return null
+  if (!tk.newEmail) return null
+
+  const userId = await emailToUserId(tk.email)
+  if (!userId) return null
+
+  await prisma.verificationToken.update({
+    where: { token },
+    data: { usedAt: new Date() },
+  })
+
+  return {
+    token: tk.token,
+    userId,
+    newEmail: tk.newEmail,
+    expiresAt: tk.expiresAt.toISOString(),
+  }
+}
+
+// ─── Signup verification tokens ──────────────────────────
+
+export type SignupConsumeError = 'invalid' | 'expired' | 'used'
+
+export async function createSignupToken(userId: string, email: string): Promise<SignupToken> {
+  const normalized = email.toLowerCase().trim()
+
+  // Invalidate any prior open signup tokens for this email
+  await prisma.verificationToken.updateMany({
+    where: { email: normalized, type: 'signup', usedAt: null },
+    data: { usedAt: new Date() },
+  })
+
+  const expiresAt = new Date(Date.now() + ONE_DAY_MS)
+  const created = await prisma.verificationToken.create({
+    data: {
+      token: crypto.randomUUID(),
+      email: normalized,
+      type: 'signup',
+      expiresAt,
+    },
+  })
+
+  return {
+    token: created.token,
+    userId,
+    email: normalized,
+    expiresAt: expiresAt.toISOString(),
+  }
+}
+
+/**
+ * Consumes a signup token. Returns the SignupToken on success, or a specific
+ * error code so the caller can route the user to the right error page.
+ */
+export async function consumeSignupToken(
+  token: string,
+): Promise<{ ok: true; data: SignupToken } | { ok: false; reason: SignupConsumeError }> {
+  const tk = await prisma.verificationToken.findUnique({ where: { token } })
+  if (!tk || tk.type !== 'signup') return { ok: false, reason: 'invalid' }
+  if (tk.usedAt) return { ok: false, reason: 'used' }
+  if (tk.expiresAt.getTime() <= Date.now()) return { ok: false, reason: 'expired' }
+
+  const userId = await emailToUserId(tk.email)
+  if (!userId) return { ok: false, reason: 'invalid' }
+
+  await prisma.verificationToken.update({
+    where: { token },
+    data: { usedAt: new Date() },
+  })
+
+  return {
+    ok: true,
+    data: {
+      token: tk.token,
+      userId,
+      email: tk.email,
+      expiresAt: tk.expiresAt.toISOString(),
+    },
+  }
 }

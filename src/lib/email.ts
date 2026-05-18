@@ -1,5 +1,9 @@
-const FROM = 'BrickScore <onboarding@resend.dev>'
+const DEFAULT_FROM = 'BrickScore <onboarding@resend.dev>'
 const RESEND_ENDPOINT = 'https://api.resend.com/emails'
+
+function getFromAddress(): string {
+  return process.env.EMAIL_FROM || DEFAULT_FROM
+}
 
 interface SendArgs {
   to: string
@@ -20,7 +24,7 @@ export async function sendEmail({ to, subject, html, replyTo }: SendArgs): Promi
     return { ok: false, error: 'missing_resend_key' }
   }
   try {
-    const payload: Record<string, unknown> = { from: FROM, to, subject, html }
+    const payload: Record<string, unknown> = { from: getFromAddress(), to, subject, html }
     if (replyTo) payload.reply_to = replyTo
     const res = await fetch(RESEND_ENDPOINT, {
       method: 'POST',

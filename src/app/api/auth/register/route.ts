@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { createUser, findUserByEmail } from '@/lib/users-store'
+import { createSignupToken } from '@/lib/token-store'
+import { appBaseUrl, buildEmailHtml, sendEmail } from '@/lib/email'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -33,16 +35,31 @@ export async function POST(req: NextRequest) {
   }
 
   const passwordHash = await bcrypt.hash(password, 10)
+  const userId = crypto.randomUUID()
 
   await createUser({
-    id: crypto.randomUUID(),
+    id: userId,
     email,
     name: email.split('@')[0],
     image: null,
     passwordHash,
     provider: 'credentials',
+    emailVerified: null,
     createdAt: new Date().toISOString(),
   })
 
-  return NextResponse.json({ ok: true })
+  const tk = await createSignupToken(userId, email)
+  const link = `${appBaseUrl()}/api/auth/verify-email?token=${encodeURIComponent(tk.token)}`
+  const html = buildEmailHtml({
+    heading: 'Willkommen bei brickscore',
+    intro: 'Bitte bestätige deine E-Mail-Adresse, um loszulegen. Der Link ist 24 Stunden gültig.',
+    buttonLabel: 'E-Mail bestätigen',
+    buttonHref: link,
+    fallbackNote: 'Falls der Button nicht funktioniert: kopiere den Link in deinen Browser.',
+  })
+  // Fire-and-forget — registration still succeeds even if mail delivery fails;
+  // the user can request a new verification mail.
+  await sendEmail({ to: email, subject: 'Willkommen bei brickscore — E-Mail bestätigen', html })
+
+  return NextResponse.json({ ok: true, requiresVerification: true })
 }

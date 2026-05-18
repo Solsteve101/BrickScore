@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { signIn, useSession } from 'next-auth/react'
 import AuthShell from '@/components/auth/AuthShell'
-import { capturePendingReferralCode, claimPendingReferral, isValidReferralCode } from '@/lib/referral-client'
+import { capturePendingReferralCode, isValidReferralCode } from '@/lib/referral-client'
 
 export default function SignupPage() {
   const router = useRouter()
@@ -49,17 +49,9 @@ export default function SignupPage() {
       setLoading(null)
       return
     }
+    // Stash the referral code so it survives the email-verification + first-login round-trip.
     if (refCode.trim()) capturePendingReferralCode(refCode)
-    const signInRes = await signIn('credentials', { email, password, redirect: false })
-    if (signInRes?.error) {
-      setError('Konto erstellt — bitte jetzt anmelden.')
-      setLoading(null)
-      router.push('/login')
-      return
-    }
-    void claimPendingReferral()
-    router.push('/')
-    router.refresh()
+    router.push(`/verify-email/pending?email=${encodeURIComponent(email)}`)
   }
 
   const onGoogle = async () => {

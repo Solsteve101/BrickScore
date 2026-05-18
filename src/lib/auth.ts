@@ -1,8 +1,12 @@
-import NextAuth from 'next-auth'
+import NextAuth, { CredentialsSignin } from 'next-auth'
 import Google from 'next-auth/providers/google'
 import Credentials from 'next-auth/providers/credentials'
 import bcrypt from 'bcryptjs'
-import { findUserByEmail, upsertGoogleUser } from './users-store'
+import { findUserByEmail, upsertGoogleUser, markEmailVerified } from './users-store'
+
+class EmailNotVerifiedError extends CredentialsSignin {
+  code = 'EMAIL_NOT_VERIFIED'
+}
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: 'jwt' },
@@ -26,6 +30,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!user || !user.passwordHash) return null
         const ok = await bcrypt.compare(password, user.passwordHash)
         if (!ok) return null
+        if (!user.emailVerified) {
+          throw new EmailNotVerifiedError()
+        }
         return {
           id: user.id,
           email: user.email,
@@ -46,6 +53,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // Replace Google's `sub` with the Prisma cuid so the JWT carries the
         // canonical user id — every downstream findUserById lookup matches.
         user.id = dbUser.id
+        // Google-authenticated emails count as verified; backfill if the row
+        // pre-existed via credentials sign-up without verification.
+        if (!dbUser.emailVerified) {
+          await markEmailVerified(dbUser.id)
+        }
       }
       return true
     },

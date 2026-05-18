@@ -21,15 +21,25 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [showPw, setShowPw] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [needsVerification, setNeedsVerification] = useState(false)
   const [loading, setLoading] = useState<'google' | 'creds' | null>(null)
 
   const onCredentialsSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (loading) return
     setError(null)
+    setNeedsVerification(false)
     setLoading('creds')
     const res = await signIn('credentials', { email, password, redirect: false })
     if (res?.error) {
+      // NextAuth v5 surfaces our custom CredentialsSignin.code as `code` on the
+      // response when the URL carries ?error=CredentialsSignin&code=...
+      const code = (res as { code?: string }).code
+      if (code === 'EMAIL_NOT_VERIFIED') {
+        setNeedsVerification(true)
+        setLoading(null)
+        return
+      }
       setError('E-Mail oder Passwort ist falsch.')
       setLoading(null)
       return
@@ -131,6 +141,20 @@ export default function LoginPage() {
         {error && (
           <div style={{ padding: '10px 12px', borderRadius: 8, background: 'rgba(207,45,86,0.08)', border: '1px solid rgba(207,45,86,0.2)', font: '400 13px/1.4 var(--font-dm-sans), sans-serif', color: '#cf2d56' }}>
             {error}
+          </div>
+        )}
+
+        {needsVerification && (
+          <div style={{ padding: '12px 14px', borderRadius: 9, background: 'rgba(184,150,12,0.08)', border: '1px solid rgba(184,150,12,0.25)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <span style={{ font: '500 13px/1.45 var(--font-dm-sans), sans-serif', color: '#7a5e08' }}>
+              Bitte bestätige zuerst deine E-Mail-Adresse.
+            </span>
+            <Link
+              href={`/verify-email/pending?email=${encodeURIComponent(email)}`}
+              style={{ font: '500 13px/1.4 var(--font-dm-sans), sans-serif', color: '#0a0a0a', textDecoration: 'underline', textUnderlineOffset: 3, alignSelf: 'flex-start' }}
+            >
+              Bestätigungs-Mail erneut anfordern
+            </Link>
           </div>
         )}
 
