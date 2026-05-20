@@ -104,7 +104,7 @@ export default function Header() {
           ) : (
             <div className="hidden md:flex items-center" style={{ gap: 20 }}>
               <Link
-                href="/login?callbackUrl=/"
+                href="/login"
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',

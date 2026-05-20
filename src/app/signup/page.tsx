@@ -57,7 +57,7 @@ export default function SignupPage() {
   const onGoogle = async () => {
     if (loading) return
     setLoading('google')
-    await signIn('google', { callbackUrl: '/' })
+    await signIn('google', { callbackUrl: '/dashboard/new' })
   }
 
   return (

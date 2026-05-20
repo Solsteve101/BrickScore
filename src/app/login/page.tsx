@@ -9,7 +9,7 @@ import AuthShell from '@/components/auth/AuthShell'
 export default function LoginPage() {
   const router = useRouter()
   const params = useSearchParams()
-  const callbackUrl = params.get('callbackUrl') || '/'
+  const callbackUrl = params.get('callbackUrl') || '/dashboard/new'
   const resetSuccess = params.get('reset') === 'success'
   const { status } = useSession()
 
