@@ -299,6 +299,11 @@
 
 /* (Exports 3-dot menu visibility is now controlled by Tailwind md:hidden on the JSX) */
 
+/* Mobile bottom nav: hidden by default (desktop); the ≤767px media query below shows it.
+   Controlled purely in CSS (no JS / no Tailwind utility) so it can never flash or
+   mismatch during hydration. */
+.bs-bottom-nav { display: none; }
+
 /* ─── Mobile responsive overrides (≤767px) ───
    Uses !important to override per-element inline styles set via React `style={...}`.
    Class hooks are added directly on the relevant components. */
@@ -420,6 +425,7 @@
   /* Dashboard — hide sidebar, reserve room for bottom nav */
   .bs-dashboard-sidebar { display: none !important; visibility: hidden !important; width: 0 !important; }
   .bs-dashboard-main { padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px) + 8px) !important; }
+  .bs-bottom-nav { display: block !important; }
 
   /* Settings — show mobile-only quick links to Nutzung/Abonnement */
   .bs-settings-mobile-links { display: flex !important; }

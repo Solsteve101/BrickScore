@@ -23,7 +23,7 @@ export function MobileBottomNav() {
 
   return (
     <nav
-      className="bs-bottom-nav md:hidden"
+      className="bs-bottom-nav"
       style={{
         position: 'fixed',
         bottom: 0,

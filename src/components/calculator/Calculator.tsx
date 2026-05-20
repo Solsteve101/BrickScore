@@ -26,7 +26,10 @@ import ExportDealModal, { type ExportFormat } from './ExportDealModal'
 import { saveDeal as persistDeal, updateDeal, buildKpis, findDealById, type SavedDeal } from '@/lib/deals-store'
 import { runExport } from '@/lib/exporters/run-export'
 import { hasTokens, spendTokens, getUsage, type UsagePlan } from '@/lib/usage-store'
+import { TOKEN_COST } from '@/lib/usage-shared'
 import { pushToast } from '@/lib/toast'
+import { useIsMobile } from '@/hooks/useIsMobile'
+import { LinkIcon, FileText } from 'lucide-react'
 
 // ═══════════════════════════════════════════════════════════
 // CHART HELPERS
@@ -622,16 +625,62 @@ function detectSource(url: string): { key: string; label: string; color: string;
   return null
 }
 
+function ModeTab({ active, label, icon, onClick }: {
+  active: boolean
+  label: string
+  icon: React.ReactNode
+  onClick: () => void
+}) {
+  const [hover, setHover] = useState(false)
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      aria-pressed={active}
+      style={{
+        flex: 1, minHeight: 44, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+        border: 'none', cursor: 'pointer', borderRadius: 10, padding: '0 10px',
+        background: active ? '#1C1C1C' : hover ? 'rgba(0,0,0,0.04)' : 'transparent',
+        color: active ? '#ffffff' : '#6F6F6F',
+        font: '500 13.5px/1 var(--font-dm-sans), sans-serif',
+        transition: 'background-color 160ms ease, color 160ms ease',
+      }}
+    >
+      {icon}
+      <span>{label}</span>
+    </button>
+  )
+}
+
 function ListingImport({ url, onUrlChange, onFill }: {
   url: string
   onUrlChange: (url: string) => void
   onFill: (data: ListingData) => void
 }) {
   const { status, data, error, insufficientTokens, dismissInsufficient, analyzeListing, analyzeText, reset } = useListingAnalysis()
-  const [fallbackText, setFallbackText] = useState('')
-  const [manualImportOpen, setManualImportOpen] = useState(false)
+  const isMobile = useIsMobile()
+  const [inputMode, setInputMode] = useState<'link' | 'text'>(isMobile ? 'text' : 'link')
+  const userTouchedMode = useRef(false)
+  const [pasteText, setPasteText] = useState('')
   const [loadingText, setLoadingText] = useState('Analysiere Inserat…')
   const loadingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Follow the viewport default until the user explicitly picks a tab.
+  useEffect(() => {
+    if (!userTouchedMode.current) {
+      setInputMode(isMobile ? 'text' : 'link')
+    }
+  }, [isMobile])
+
+  // A failed link analysis drops the user into the text tab automatically.
+  useEffect(() => {
+    if (status === 'error' && inputMode === 'link') {
+      userTouchedMode.current = true
+      setInputMode('text')
+    }
+  }, [status, inputMode])
 
   useEffect(() => {
     if (status === 'loading') {
@@ -648,8 +697,14 @@ function ListingImport({ url, onUrlChange, onFill }: {
     }
   }, [status])
 
+  const handleModeChange = (mode: 'link' | 'text') => {
+    userTouchedMode.current = true
+    setInputMode(mode)
+  }
+
   const source = useMemo(() => detectSource(url), [url])
   const isValidUrl = url.trim().length > 6 && /^https?:\/\//i.test(url.trim())
+  const textReady = pasteText.trim().length > 0
 
   const handleAnalyze = async () => {
     if (!isValidUrl || status === 'loading') return
@@ -657,17 +712,16 @@ function ListingImport({ url, onUrlChange, onFill }: {
     if (result) onFill(result)
   }
 
-  const handleFallbackAnalyze = async () => {
-    if (!fallbackText.trim() || status === 'loading') return
-    const result = await analyzeText(fallbackText)
+  const handleTextAnalyze = async () => {
+    if (!textReady || status === 'loading') return
+    const result = await analyzeText(pasteText)
     if (result) onFill(result)
   }
 
   const handleClear = () => {
     onUrlChange('')
     reset()
-    setFallbackText('')
-    setManualImportOpen(false)
+    setPasteText('')
   }
 
   const handleUrlChange = (val: string) => {
@@ -688,94 +742,156 @@ function ListingImport({ url, onUrlChange, onFill }: {
         <span style={{ font: '500 10.5px/1.27 var(--font-dm-sans), sans-serif', letterSpacing: 0.6, textTransform: 'uppercase', color: '#26251e' }}>
           Inserat
         </span>
-        {source && (
+        {source && inputMode === 'link' && (
           <span style={{ font: '500 10px/1 var(--font-dm-sans), sans-serif', letterSpacing: 0.4, textTransform: 'uppercase', color: source.color, background: source.bg, padding: '4px 7px', borderRadius: 4 }}>
             {source.label}
           </span>
         )}
       </div>
 
-      {/* URL input row */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 8,
-        padding: '9px 10px 9px 11px', borderRadius: 10, background: '#fff',
-        boxShadow: `0 0 0 1px ${ringColor}`,
-        transition: 'box-shadow 240ms ease',
-      }}>
-        <span style={{ width: 26, height: 26, flexShrink: 0, borderRadius: 6, background: source ? source.bg : 'rgba(38,37,30,0.06)', color: source ? source.color : 'rgba(38,37,30,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 200ms ease, color 200ms ease' }}>
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-            <path d="M6.5 9.5a2.5 2.5 0 0 0 3.54 0l2-2a2.5 2.5 0 0 0-3.54-3.54l-.7.7M9.5 6.5a2.5 2.5 0 0 0-3.54 0l-2 2a2.5 2.5 0 0 0 3.54 3.54l.7-.7" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </span>
-
-        <input
-          value={url}
-          onChange={(e) => handleUrlChange(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void handleAnalyze() } }}
-          placeholder="Inserats-Link einfügen…"
-          spellCheck={false}
-          style={{ border: 'none', outline: 'none', background: 'transparent', padding: 0, margin: 0, flex: 1, minWidth: 0, font: '400 13px/1.35 var(--font-dm-sans), sans-serif', color: '#26251e', textOverflow: 'ellipsis' }}
+      {/* Mode tabs */}
+      <div style={{ display: 'flex', gap: 4, padding: 4, borderRadius: 12, background: '#F5F5F3' }}>
+        <ModeTab
+          active={inputMode === 'link'}
+          label="Link"
+          icon={<LinkIcon size={15} strokeWidth={1.75} />}
+          onClick={() => handleModeChange('link')}
         />
-
-        {/* Right-side indicators */}
-        {status === 'loading' && (
-          <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, color: 'rgba(38,37,30,0.55)' }}>
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ animation: 'vestora-spin 0.9s linear infinite', flexShrink: 0 }}>
-              <circle cx="8" cy="8" r="6" stroke="currentColor" strokeOpacity="0.25" strokeWidth="2" />
-              <path d="M14 8a6 6 0 0 0-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-            </svg>
-            <span style={{ font: '400 11px/1 var(--font-dm-sans), sans-serif', whiteSpace: 'nowrap' }}>{loadingText}</span>
-          </span>
-        )}
-        {status === 'success' && (
-          <span style={{ display: 'flex', alignItems: 'center', flexShrink: 0, color: '#1f8a65' }}>
-            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <path d="M3 8.5l3.2 3.2L13 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </span>
-        )}
-        {status === 'idle' && isValidUrl && (
-          <button
-            onClick={() => { void handleAnalyze() }}
-            style={{ flexShrink: 0, border: 'none', background: '#26251e', color: '#f7f7f4', cursor: 'pointer', borderRadius: 6, padding: '5px 9px', font: '500 11px/1 var(--font-dm-sans), sans-serif', whiteSpace: 'nowrap' }}
-          >
-            Analysieren
-          </button>
-        )}
-        {status === 'error' && isValidUrl && (
-          <button
-            onClick={() => { void handleAnalyze() }}
-            style={{ flexShrink: 0, border: 'none', background: 'rgba(207,45,86,0.1)', color: '#cf2d56', cursor: 'pointer', borderRadius: 6, padding: '5px 9px', font: '500 11px/1 var(--font-dm-sans), sans-serif', whiteSpace: 'nowrap' }}
-          >
-            Erneut
-          </button>
-        )}
-        {url && status !== 'loading' && (
-          <button
-            onClick={handleClear}
-            title="Link entfernen"
-            style={{ flexShrink: 0, border: 'none', background: 'transparent', cursor: 'pointer', padding: 2, color: 'rgba(38,37,30,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          >
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-              <path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            </svg>
-          </button>
-        )}
+        <ModeTab
+          active={inputMode === 'text'}
+          label="Text"
+          icon={<FileText size={15} strokeWidth={1.75} />}
+          onClick={() => handleModeChange('text')}
+        />
       </div>
 
-      {/* Status feedback below input */}
-      {status === 'idle' && (
-        <p style={{ margin: 0, font: '400 11px/1.4 var(--font-dm-sans), sans-serif', color: 'rgba(38,37,30,0.45)' }}>
-          ImmoScout24, Immowelt, Kleinanzeigen &amp; mehr. Bei manchen Portalen ist ein manueller Text-Import nötig.
-        </p>
+      {/* ─── LINK MODE ─── */}
+      {inputMode === 'link' && (
+        <>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: '9px 10px 9px 11px', borderRadius: 10, background: '#fff',
+            boxShadow: `0 0 0 1px ${ringColor}`,
+            transition: 'box-shadow 240ms ease',
+          }}>
+            <span style={{ width: 26, height: 26, flexShrink: 0, borderRadius: 6, background: source ? source.bg : 'rgba(38,37,30,0.06)', color: source ? source.color : 'rgba(38,37,30,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 200ms ease, color 200ms ease' }}>
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="M6.5 9.5a2.5 2.5 0 0 0 3.54 0l2-2a2.5 2.5 0 0 0-3.54-3.54l-.7.7M9.5 6.5a2.5 2.5 0 0 0-3.54 0l-2 2a2.5 2.5 0 0 0 3.54 3.54l.7-.7" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </span>
+
+            <input
+              value={url}
+              onChange={(e) => handleUrlChange(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void handleAnalyze() } }}
+              placeholder="Inserats-Link einfügen…"
+              spellCheck={false}
+              style={{ border: 'none', outline: 'none', background: 'transparent', padding: 0, margin: 0, flex: 1, minWidth: 0, font: '400 13px/1.35 var(--font-dm-sans), sans-serif', color: '#26251e', textOverflow: 'ellipsis' }}
+            />
+
+            {/* Right-side indicators */}
+            {status === 'loading' && (
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, color: 'rgba(38,37,30,0.55)' }}>
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ animation: 'vestora-spin 0.9s linear infinite', flexShrink: 0 }}>
+                  <circle cx="8" cy="8" r="6" stroke="currentColor" strokeOpacity="0.25" strokeWidth="2" />
+                  <path d="M14 8a6 6 0 0 0-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+                <span style={{ font: '400 11px/1 var(--font-dm-sans), sans-serif', whiteSpace: 'nowrap' }}>{loadingText}</span>
+              </span>
+            )}
+            {status === 'success' && (
+              <span style={{ display: 'flex', alignItems: 'center', flexShrink: 0, color: '#1f8a65' }}>
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <path d="M3 8.5l3.2 3.2L13 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </span>
+            )}
+            {status === 'idle' && isValidUrl && (
+              <button
+                onClick={() => { void handleAnalyze() }}
+                style={{ flexShrink: 0, border: 'none', background: '#26251e', color: '#f7f7f4', cursor: 'pointer', borderRadius: 6, padding: '5px 9px', font: '500 11px/1 var(--font-dm-sans), sans-serif', whiteSpace: 'nowrap' }}
+              >
+                Analysieren
+              </button>
+            )}
+            {status === 'error' && isValidUrl && (
+              <button
+                onClick={() => { void handleAnalyze() }}
+                style={{ flexShrink: 0, border: 'none', background: 'rgba(207,45,86,0.1)', color: '#cf2d56', cursor: 'pointer', borderRadius: 6, padding: '5px 9px', font: '500 11px/1 var(--font-dm-sans), sans-serif', whiteSpace: 'nowrap' }}
+              >
+                Erneut
+              </button>
+            )}
+            {url && status !== 'loading' && (
+              <button
+                onClick={handleClear}
+                title="Link entfernen"
+                style={{ flexShrink: 0, border: 'none', background: 'transparent', cursor: 'pointer', padding: 2, color: 'rgba(38,37,30,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              </button>
+            )}
+          </div>
+
+          <p style={{ margin: '4px 0 0', font: '400 11.5px/1.4 var(--font-dm-sans), sans-serif', color: '#6F6F6F' }}>
+            Analyse mit Web-Scraping. ImmoScout24, Immowelt, Kleinanzeigen &amp; mehr.
+          </p>
+        </>
       )}
 
-      {status === 'loading' && (
-        <p style={{ margin: 0, font: '400 11px/1.4 var(--font-dm-sans), sans-serif', color: 'rgba(38,37,30,0.55)' }}>
-          {loadingText}
-        </p>
+      {/* ─── TEXT MODE ─── */}
+      {inputMode === 'text' && (
+        <>
+          {status === 'error' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 3, padding: '8px 10px', borderRadius: 8, background: 'rgba(207,45,86,0.08)', border: '1px solid rgba(207,45,86,0.2)' }}>
+              <span style={{ font: '500 11.5px/1.4 var(--font-dm-sans), sans-serif', color: '#cf2d56' }}>
+                Konnte den Link nicht analysieren — du kannst den Inseratstext hier manuell einfügen.
+              </span>
+              {error && (
+                <span style={{ font: '400 11px/1.4 var(--font-dm-sans), sans-serif', color: 'rgba(207,45,86,0.85)' }}>
+                  {error}
+                </span>
+              )}
+            </div>
+          )}
+          <textarea
+            value={pasteText}
+            onChange={(e) => setPasteText(e.target.value)}
+            placeholder="Inseratstext hier einfügen…"
+            rows={6}
+            style={{
+              width: '100%', boxSizing: 'border-box', borderRadius: 8,
+              border: '1px solid #e5e5e5', background: '#fff',
+              padding: '9px 10px', font: '400 12px/1.5 var(--font-dm-sans), sans-serif',
+              color: '#26251e', resize: 'vertical', outline: 'none',
+              transition: 'border-color 150ms ease',
+            }}
+            onFocus={(e) => { e.currentTarget.style.borderColor = '#0a0a0a' }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = '#e5e5e5' }}
+          />
+          <p style={{ margin: '4px 0 0', font: '400 11.5px/1.4 var(--font-dm-sans), sans-serif', color: '#6F6F6F' }}>
+            Analyse aus eingefügtem Text. Tipp: Inserat in der App komplett markieren und einfügen.
+          </p>
+          <button
+            onClick={() => { void handleTextAnalyze() }}
+            disabled={!textReady || status === 'loading'}
+            style={{
+              alignSelf: 'flex-start', border: 'none', background: '#26251e', color: '#f7f7f4',
+              cursor: textReady && status !== 'loading' ? 'pointer' : 'default',
+              borderRadius: 7, padding: '8px 14px',
+              font: '500 12px/1 var(--font-dm-sans), sans-serif',
+              opacity: textReady && status !== 'loading' ? 1 : 0.4,
+              transition: 'opacity 150ms ease',
+            }}
+          >
+            {status === 'loading' ? loadingText : 'Inserat analysieren'}
+          </button>
+        </>
       )}
 
+      {/* Success summary — shared across both modes */}
       {status === 'success' && data && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '7px 10px', borderRadius: 7, background: 'rgba(31,138,101,0.08)', border: '1px solid rgba(31,138,101,0.18)' }}>
           <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ flexShrink: 0, color: '#1f8a65' }}>
@@ -791,53 +907,6 @@ function ListingImport({ url, onUrlChange, onFill }: {
           </span>
         </div>
       )}
-
-      {(status === 'error' || manualImportOpen) && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {status === 'error' && error && (
-            <p style={{ margin: 0, font: '400 11.5px/1.4 var(--font-dm-sans), sans-serif', color: '#cf2d56' }}>
-              {error}
-            </p>
-          )}
-          <p style={{ margin: 0, font: '400 11.5px/1.4 var(--font-dm-sans), sans-serif', color: 'rgba(38,37,30,0.7)' }}>
-            Inseratstext manuell einfügen:
-          </p>
-          <textarea
-            value={fallbackText}
-            onChange={(e) => setFallbackText(e.target.value)}
-            placeholder="Inseratstext hier einfügen…"
-            rows={5}
-            style={{
-              width: '100%', boxSizing: 'border-box', borderRadius: 8,
-              border: '1px solid #e5e5e5', background: '#fff',
-              padding: '9px 10px', font: '400 12px/1.5 var(--font-dm-sans), sans-serif',
-              color: '#26251e', resize: 'vertical', outline: 'none',
-              transition: 'border-color 150ms ease',
-            }}
-            onFocus={(e) => { e.currentTarget.style.borderColor = '#0a0a0a' }}
-            onBlur={(e) => { e.currentTarget.style.borderColor = '#e5e5e5' }}
-          />
-          <ol style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 2, font: '400 10.5px/1.45 var(--font-dm-sans), sans-serif', color: 'rgba(38,37,30,0.45)' }}>
-            <li>1. Öffne das Inserat im Browser</li>
-            <li>2. Alles markieren (Strg+A) und kopieren (Strg+C)</li>
-            <li>3. Hier einfügen (Strg+V)</li>
-          </ol>
-          <button
-            onClick={() => { void handleFallbackAnalyze() }}
-            disabled={!fallbackText.trim()}
-            style={{
-              alignSelf: 'flex-start', border: 'none', background: '#26251e', color: '#f7f7f4',
-              cursor: fallbackText.trim() ? 'pointer' : 'default',
-              borderRadius: 7, padding: '8px 14px',
-              font: '500 12px/1 var(--font-dm-sans), sans-serif',
-              opacity: fallbackText.trim() ? 1 : 0.4,
-              transition: 'opacity 150ms ease',
-            }}
-          >
-            Inserat analysieren
-          </button>
-        </div>
-      )}
     </div>
 
     {insufficientTokens && (
@@ -846,7 +915,7 @@ function ListingImport({ url, onUrlChange, onFill }: {
         onClose={dismissInsufficient}
         onUseManual={() => {
           dismissInsufficient()
-          setManualImportOpen(true)
+          handleModeChange('text')
         }}
       />
     )}
@@ -863,8 +932,7 @@ function InsufficientTokensModal({
   onClose: () => void
   onUseManual: () => void
 }) {
-  const TEXT_COST = 3
-  const canUseManual = info.action === 'link_analyse' && info.remaining >= TEXT_COST
+  const canUseManual = info.action === 'link_analyse' && info.remaining >= TOKEN_COST.text_analyse
 
   const headline = 'Nutzungslimit erreicht'
   const body = canUseManual
