@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getCurrentDbUser } from '@/lib/db-user'
+import { checkTokensForUser, spendTokensForUser } from '@/lib/usage-server'
+import { TOKEN_COST } from '@/lib/usage-shared'
 
 const GREST_BY_STATE: Record<string, number> = {
   BW: 5.0, BY: 3.5, BE: 6.0, BB: 6.5, HB: 5.0,
@@ -155,6 +158,10 @@ function buildPreExtractedHint(p: PreExtracted): string {
   return `HINWEIS — Folgende Werte wurden bereits aus dem strukturierten JSON-Objekt der Plattform extrahiert. Übernimm sie genau so, es sei denn der Inseratstext zeigt einen offensichtlich präziseren Wert:\n${lines.join('\n')}\n\n`
 }
 
+function hostFromUrl(url: string): string {
+  try { return new URL(url).hostname.replace(/^www\./, '') } catch { return 'Inserat' }
+}
+
 const EXTRACTION_PROMPT = `Du bist ein präziser Immobilien-Daten-Extraktor für den deutschen Markt. Analysiere den folgenden Inseratstext und extrahiere ALLE verfügbaren Daten.
 
 WICHTIG:
@@ -228,12 +235,41 @@ REGELN:
 
 Inseratstext:`
 
+function insufficientTokensResponse(action: 'link_analyse' | 'text_analyse', remaining: number) {
+  return NextResponse.json(
+    {
+      error: 'insufficient_tokens',
+      message: 'Nutzungslimit erreicht.',
+      action,
+      required: TOKEN_COST[action],
+      remaining,
+    },
+    { status: 402 },
+  )
+}
+
 export async function POST(req: NextRequest) {
+  const user = await getCurrentDbUser()
+  if (!user) {
+    return NextResponse.json({ error: 'unauthorized', message: 'Bitte melde dich an.' }, { status: 401 })
+  }
+
   let body: RequestBody
   try {
     body = await req.json() as RequestBody
   } catch {
     return NextResponse.json({ error: 'invalid_json' }, { status: 400 })
+  }
+
+  const action = body.url ? 'link_analyse' : 'text_analyse'
+  if (!body.url && !body.text?.trim()) {
+    return NextResponse.json({ error: 'missing_input' }, { status: 400 })
+  }
+
+  // Check before any paid call (Firecrawl / Claude). Tokens are only charged after a successful analysis.
+  const check = await checkTokensForUser(user.id, action)
+  if (!check.ok) {
+    return insufficientTokensResponse(action, check.state.tokens_remaining)
   }
 
   let content = ''
@@ -345,7 +381,14 @@ export async function POST(req: NextRequest) {
 
   const grestPct = bundeslandCode ? (GREST_BY_STATE[bundeslandCode] ?? null) : null
 
+  // Atomic charge — if a parallel request used the tokens up meanwhile, no data is returned.
+  const spend = await spendTokensForUser(user.id, action, body.url ? hostFromUrl(body.url) : 'Text-Paste')
+  if (!spend.ok) {
+    return insufficientTokensResponse(action, spend.state.tokens_remaining)
+  }
+
   return NextResponse.json({
+    usageToast: spend.toast,
     kaufpreis: extracted.kaufpreis,
     wohnflaeche: extracted.wohnflaeche,
     zimmer: extracted.zimmer,

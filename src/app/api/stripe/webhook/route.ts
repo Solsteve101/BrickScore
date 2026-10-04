@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import type Stripe from 'stripe'
 import { getStripe } from '@/lib/stripe'
 import { prisma } from '@/lib/prisma'
+import { planForPriceId, type PlanForPrice } from '@/lib/stripe-plans'
+import { setPlanForUser } from '@/lib/usage-server'
+import { PLAN_MAX } from '@/lib/usage-shared'
 
 export const runtime = 'nodejs'
 
@@ -94,20 +97,99 @@ async function handleSubscriptionDeleted(sub: Stripe.Subscription): Promise<void
   })
 }
 
+// Subscription statuses that keep a paid plan. past_due stays paid while Stripe retries the charge.
+const PAID_STATUSES: ReadonlySet<Stripe.Subscription.Status> = new Set(['active', 'trialing', 'past_due'])
+
+interface UserHint {
+  userId?: string | null
+  email?: string | null
+}
+
+/**
+ * Finds the BrickScore user for a Stripe customer and links the customer ID
+ * if it isn't stored yet. The trusted userId from our own checkout metadata
+ * wins over the email fallback.
+ */
+async function resolveUserForCustomer(customerId: string, hint: UserHint) {
+  const byCustomer = await prisma.user.findFirst({ where: { stripeCustomerId: customerId } })
+  if (byCustomer) return byCustomer
+
+  if (hint.userId) {
+    const byId = await prisma.user.findUnique({ where: { id: hint.userId } })
+    if (byId) {
+      return prisma.user.update({ where: { id: byId.id }, data: { stripeCustomerId: customerId } })
+    }
+  }
+
+  const byEmail = await findUserByEmail(hint.email)
+  if (byEmail && !byEmail.stripeCustomerId) {
+    return prisma.user.update({ where: { id: byEmail.id }, data: { stripeCustomerId: customerId } })
+  }
+  return null
+}
+
+/**
+ * Derives the plan from the customer's *current* subscriptions at Stripe and
+ * writes it to the user. Reading live state (instead of trusting the event
+ * payload) makes this idempotent and safe against re-delivered or
+ * out-of-order events.
+ */
+async function syncPlanFromStripe(customerId: string, hint: UserHint): Promise<void> {
+  const user = await resolveUserForCustomer(customerId, hint)
+  if (!user) return
+
+  const stripe = getStripe()
+  const subs = await stripe.subscriptions.list({ customer: customerId, status: 'all', limit: 20 })
+
+  let best: PlanForPrice | null = null
+  let hasUnmappedPaidSub = false
+  for (const sub of subs.data) {
+    if (!PAID_STATUSES.has(sub.status)) continue
+    for (const item of sub.items.data) {
+      const mapped = planForPriceId(item.price.id)
+      if (!mapped) {
+        hasUnmappedPaidSub = true
+        continue
+      }
+      if (!best || PLAN_MAX[mapped.plan] > PLAN_MAX[best.plan]) best = mapped
+    }
+  }
+
+  // An active subscription on a price we don't know is a config issue — don't punish the user for it.
+  if (!best && hasUnmappedPaidSub) {
+    // eslint-disable-next-line no-console
+    console.error('[stripe webhook] active subscription with unknown price', { customerId })
+    return
+  }
+
+  const nextPlan = best?.plan ?? 'free'
+  const nextInterval = best?.interval ?? null
+  if (user.plan === nextPlan && (user.billingInterval ?? null) === nextInterval) return
+  await setPlanForUser(user.id, nextPlan, nextInterval)
+}
+
+function customerIdOf(customer: string | Stripe.Customer | Stripe.DeletedCustomer | null): string | null {
+  if (!customer) return null
+  return typeof customer === 'string' ? customer : customer.id
+}
+
 export async function POST(req: NextRequest) {
   const rawBody = await req.text()
   const signature = req.headers.get('stripe-signature') ?? ''
   const secret = process.env.STRIPE_WEBHOOK_SECRET
 
+  if (!secret) {
+    // eslint-disable-next-line no-console
+    console.error('[stripe webhook] STRIPE_WEBHOOK_SECRET is not set')
+    return NextResponse.json({ error: 'webhook_not_configured' }, { status: 500 })
+  }
+  if (!signature) {
+    return NextResponse.json({ error: 'webhook_signature_missing' }, { status: 400 })
+  }
+
   let event: Stripe.Event
   try {
-    if (secret && signature) {
-      const stripe = getStripe()
-      event = stripe.webhooks.constructEvent(rawBody, signature, secret)
-    } else {
-      // No webhook secret configured — accept the payload verbatim (dev/test only).
-      event = JSON.parse(rawBody) as Stripe.Event
-    }
+    event = getStripe().webhooks.constructEvent(rawBody, signature, secret)
   } catch (e) {
     const message = e instanceof Error ? e.message : 'invalid_signature'
     return NextResponse.json({ error: 'webhook_signature_invalid', message }, { status: 400 })
@@ -115,25 +197,24 @@ export async function POST(req: NextRequest) {
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as Stripe.Checkout.Session
-    const plan = session.metadata?.plan ?? null
-    const interval = session.metadata?.interval ?? null
-    const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id ?? null
-    const email = session.customer_details?.email ?? null
-    // eslint-disable-next-line no-console
-    console.log('[stripe] checkout.session.completed', {
-      id: session.id,
-      customerEmail: email,
-      customerId,
-      plan,
-      interval,
-      amountTotal: session.amount_total,
-      currency: session.currency,
-    })
-    if (customerId && email) {
-      await prisma.user.updateMany({
-        where: { email, stripeCustomerId: null },
-        data: { stripeCustomerId: customerId },
+    const customerId = customerIdOf(session.customer)
+    if (session.mode === 'subscription' && customerId) {
+      await syncPlanFromStripe(customerId, {
+        userId: session.client_reference_id ?? session.metadata?.userId ?? null,
+        email: session.customer_details?.email ?? session.customer_email ?? null,
       })
+    }
+  }
+
+  if (
+    event.type === 'customer.subscription.created' ||
+    event.type === 'customer.subscription.updated' ||
+    event.type === 'customer.subscription.deleted'
+  ) {
+    const sub = event.data.object as Stripe.Subscription
+    const customerId = customerIdOf(sub.customer)
+    if (customerId) {
+      await syncPlanFromStripe(customerId, { userId: sub.metadata?.userId ?? null })
     }
   }
 

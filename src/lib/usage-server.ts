@@ -22,25 +22,34 @@ interface UserUsageRow {
   exportsCount: number
 }
 
+const USAGE_SELECT = {
+  id: true,
+  plan: true,
+  billingInterval: true,
+  tokensRemaining: true,
+  weekStart: true,
+  exportsCount: true,
+} as const
+
 /**
  * Resets the user's weekly counters when the stored week is older than the
  * current Monday. Returns the (possibly updated) usage row. Does not append
- * history — week rollover is silent.
+ * history — week rollover is silent. The reset is conditional on weekStart so
+ * concurrent requests can't reset twice and wipe a spend in between.
  */
 async function rollWeekIfNeeded(user: UserUsageRow): Promise<UserUsageRow> {
   const currentMonday = mondayOf(new Date())
   if (user.weekStart === currentMonday) return user
   const plan = normalizePlan(user.plan)
-  const updated = await prisma.user.update({
-    where: { id: user.id },
+  await prisma.user.updateMany({
+    where: { id: user.id, weekStart: { not: currentMonday } },
     data: {
       weekStart: currentMonday,
       tokensRemaining: PLAN_MAX[plan],
       exportsCount: 0,
     },
-    select: { id: true, plan: true, billingInterval: true, tokensRemaining: true, weekStart: true, exportsCount: true },
   })
-  return updated
+  return prisma.user.findUniqueOrThrow({ where: { id: user.id }, select: USAGE_SELECT })
 }
 
 async function loadHistory(userId: string): Promise<UsageHistoryEntry[]> {
@@ -72,11 +81,7 @@ function toUsageState(user: UserUsageRow, history: UsageHistoryEntry[]): UsageSt
 }
 
 export async function getUsageForUser(userId: string): Promise<UsageState> {
-  const row = await prisma.user.findUniqueOrThrow({
-    where: { id: userId },
-    select: { id: true, plan: true, billingInterval: true, tokensRemaining: true, weekStart: true, exportsCount: true },
-  })
-  const rolled = await rollWeekIfNeeded(row)
+  const rolled = await loadRolledUsageRow(userId)
   const history = await loadHistory(userId)
   return toUsageState(rolled, history)
 }
@@ -87,37 +92,53 @@ export interface SpendResult {
   toast: 'empty' | 'low' | null
 }
 
+async function loadRolledUsageRow(userId: string): Promise<UserUsageRow> {
+  const row = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: USAGE_SELECT })
+  return rollWeekIfNeeded(row)
+}
+
+/** Read-only check whether the user can currently afford the action. */
+export async function checkTokensForUser(
+  userId: string,
+  action: UsageAction,
+): Promise<{ ok: boolean; state: UsageState }> {
+  const rolled = await loadRolledUsageRow(userId)
+  const history = await loadHistory(userId)
+  return { ok: rolled.tokensRemaining >= TOKEN_COST[action], state: toUsageState(rolled, history) }
+}
+
 export async function spendTokensForUser(
   userId: string,
   action: UsageAction,
   detail?: string,
 ): Promise<SpendResult> {
-  const row = await prisma.user.findUniqueOrThrow({
-    where: { id: userId },
-    select: { id: true, plan: true, billingInterval: true, tokensRemaining: true, weekStart: true, exportsCount: true },
-  })
-  const rolled = await rollWeekIfNeeded(row)
+  await loadRolledUsageRow(userId)
   const cost = TOKEN_COST[action]
-  if (rolled.tokensRemaining < cost) {
+
+  // Atomic: the decrement only applies while enough tokens are left, so
+  // concurrent requests can never push the balance below zero.
+  const updated = await prisma.$transaction(async (tx) => {
+    const res = await tx.user.updateMany({
+      where: { id: userId, tokensRemaining: { gte: cost } },
+      data: {
+        tokensRemaining: { decrement: cost },
+        ...(action === 'export' ? { exportsCount: { increment: 1 } } : {}),
+      },
+    })
+    if (res.count === 0) return null
+    await tx.tokenUsage.create({
+      data: { userId, action, description: detail ?? null, tokens: -cost },
+    })
+    return tx.user.findUniqueOrThrow({ where: { id: userId }, select: USAGE_SELECT })
+  })
+
+  if (!updated) {
+    const current = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: USAGE_SELECT })
     const history = await loadHistory(userId)
-    return { ok: false, state: toUsageState(rolled, history), toast: null }
+    return { ok: false, state: toUsageState(current, history), toast: null }
   }
 
-  const beforeRemaining = rolled.tokensRemaining
-  const newRemaining = beforeRemaining - cost
-  const newExports = action === 'export' ? rolled.exportsCount + 1 : rolled.exportsCount
-
-  const [updated] = await prisma.$transaction([
-    prisma.user.update({
-      where: { id: userId },
-      data: { tokensRemaining: newRemaining, exportsCount: newExports },
-      select: { id: true, plan: true, billingInterval: true, tokensRemaining: true, weekStart: true, exportsCount: true },
-    }),
-    prisma.tokenUsage.create({
-      data: { userId, action, description: detail ?? null, tokens: -cost },
-    }),
-  ])
-
+  const beforeRemaining = updated.tokensRemaining + cost
   const max = PLAN_MAX[normalizePlan(updated.plan)]
   const threshold = max * 0.1
   let toast: 'empty' | 'low' | null = null
@@ -138,7 +159,7 @@ export async function setPlanForUser(
 ): Promise<UsageState> {
   const row = await prisma.user.findUniqueOrThrow({
     where: { id: userId },
-    select: { id: true, plan: true, billingInterval: true, tokensRemaining: true, weekStart: true, exportsCount: true },
+    select: USAGE_SELECT,
   })
   const newMax = PLAN_MAX[plan]
   const previousMax = PLAN_MAX[normalizePlan(row.plan)]
@@ -153,7 +174,7 @@ export async function setPlanForUser(
       billingInterval: finalInterval,
       tokensRemaining,
     },
-    select: { id: true, plan: true, billingInterval: true, tokensRemaining: true, weekStart: true, exportsCount: true },
+    select: USAGE_SELECT,
   })
   const history = await loadHistory(userId)
   return toUsageState(updated, history)

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
-import { getUsage, setPlan as persistPlan, type UsagePlan, type BillingInterval } from '@/lib/usage-store'
+import { getUsage, type UsagePlan, type BillingInterval } from '@/lib/usage-store'
 import { pushToast } from '@/lib/toast'
 import Link from 'next/link'
 
@@ -11,6 +11,10 @@ type Cycle = 'monthly' | 'yearly'
 type PlanKey = 'pro' | 'business'
 
 const PLAN_RANK: Record<UsagePlan, number> = { free: 0, pro: 1, business: 2 }
+
+// After the Stripe redirect the webhook may land a few seconds later — poll until the plan shows up.
+const UPGRADE_POLL_ATTEMPTS = 5
+const UPGRADE_POLL_INTERVAL_MS = 2000
 
 const PRICE_IDS: Record<PlanKey, Record<Cycle, string | undefined>> = {
   pro: {
@@ -73,7 +77,8 @@ export default function SubscriptionClient() {
     }
   }, [])
 
-  // Handle Stripe Checkout return URL — apply plan upgrade or show cancellation toast.
+  // Handle Stripe Checkout return URL. The plan itself is set by the Stripe
+  // webhook — here we only poll until the server reflects the upgrade.
   useEffect(() => {
     if (typeof window === 'undefined') return
     const params = new URLSearchParams(window.location.search)
@@ -82,15 +87,22 @@ export default function SubscriptionClient() {
     const planParam = params.get('plan')
     const intervalParam = params.get('interval')
     if (success === 'true' && (planParam === 'pro' || planParam === 'business')) {
-      const interval: BillingInterval = intervalParam === 'yearly' ? 'yearly' : 'monthly'
+      const expectedInterval: BillingInterval = intervalParam === 'yearly' ? 'yearly' : 'monthly'
       void (async () => {
-        const next = await persistPlan(planParam, interval)
-        setPlan(next.plan)
-        setPlanInterval(next.interval ?? null)
-        setTokensRemaining(next.tokens_remaining)
-        setTokensMax(next.tokens_max)
-        setCycle(interval)
-        pushToast({ variant: 'success', title: 'Upgrade erfolgreich!', message: `Dein Plan wurde auf ${planParam === 'pro' ? 'Pro' : 'Business'} (${interval === 'monthly' ? 'monatlich' : 'jährlich'}) aktualisiert.` })
+        for (let attempt = 0; attempt < UPGRADE_POLL_ATTEMPTS; attempt++) {
+          if (attempt > 0) await new Promise((r) => setTimeout(r, UPGRADE_POLL_INTERVAL_MS))
+          const u = await getUsage()
+          setPlan(u.plan)
+          setPlanInterval(u.interval ?? null)
+          setTokensRemaining(u.tokens_remaining)
+          setTokensMax(u.tokens_max)
+          if (u.plan === planParam && u.interval === expectedInterval) {
+            setCycle(expectedInterval)
+            pushToast({ variant: 'success', title: 'Upgrade erfolgreich!', message: `Dein Plan wurde auf ${planParam === 'pro' ? 'Pro' : 'Business'} (${expectedInterval === 'monthly' ? 'monatlich' : 'jährlich'}) aktualisiert.` })
+            return
+          }
+        }
+        pushToast({ variant: 'info', title: 'Zahlung eingegangen', message: 'Dein Plan wird in Kürze aktualisiert. Lade die Seite gleich neu.' })
       })()
     } else if (canceled === 'true') {
       pushToast({ variant: 'info', message: 'Upgrade abgebrochen.' })

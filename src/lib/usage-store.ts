@@ -6,7 +6,6 @@ import {
   nextResetDate,
   normalizeInterval,
   normalizePlan,
-  type BillingInterval,
   type UsageAction,
   type UsageHistoryEntry,
   type UsagePlan,
@@ -48,6 +47,29 @@ interface SpendResponse {
   toast: 'empty' | 'low' | null
 }
 
+/** Shows the "limit low/empty" toast the server decided on after a spend. */
+export function showUsageToast(toast: 'empty' | 'low' | null | undefined): void {
+  if (toast === 'empty') {
+    pushToast({
+      key: 'tokens-empty',
+      variant: 'error',
+      title: 'Nutzungslimit erreicht',
+      message: `Erneuert sich am ${fmtNextResetLong()}.`,
+      action: { label: 'Jetzt upgraden', href: '/dashboard/subscription' },
+      persistent: true,
+    })
+  } else if (toast === 'low') {
+    pushToast({
+      key: 'tokens-low',
+      variant: 'warning',
+      title: 'Limit fast erreicht',
+      message: `Du hast diese Woche schon einen großen Teil deines Limits genutzt. Erneuert sich am ${fmtNextResetLong()}.`,
+      action: { label: 'Upgrade auf Pro', href: '/dashboard/subscription' },
+      persistent: true,
+    })
+  }
+}
+
 export async function getUsage(): Promise<UsageState> {
   if (typeof window === 'undefined') return defaultState()
   try {
@@ -87,43 +109,9 @@ export async function spendTokens(action: UsageAction, detail?: string): Promise
     })
     const json = (await res.json()) as SpendResponse
     if (!json.ok) return null
-    if (json.toast === 'empty') {
-      pushToast({
-        key: 'tokens-empty',
-        variant: 'error',
-        title: 'Nutzungslimit erreicht',
-        message: `Erneuert sich am ${fmtNextResetLong()}.`,
-        action: { label: 'Jetzt upgraden', href: '/dashboard/subscription' },
-        persistent: true,
-      })
-    } else if (json.toast === 'low') {
-      pushToast({
-        key: 'tokens-low',
-        variant: 'warning',
-        title: 'Limit fast erreicht',
-        message: `Du hast diese Woche schon einen großen Teil deines Limits genutzt. Erneuert sich am ${fmtNextResetLong()}.`,
-        action: { label: 'Upgrade auf Pro', href: '/dashboard/subscription' },
-        persistent: true,
-      })
-    }
+    showUsageToast(json.toast)
     return json.state
   } catch {
     return null
   }
 }
-
-export async function setPlan(plan: UsagePlan, interval: BillingInterval | null = null): Promise<UsageState> {
-  if (typeof window === 'undefined') return defaultState(plan)
-  try {
-    const res = await fetch('/api/usage/plan', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ plan, interval }),
-    })
-    if (!res.ok) return defaultState(plan)
-    return (await res.json()) as UsageState
-  } catch {
-    return defaultState(plan)
-  }
-}
-

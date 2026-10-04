@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { getCurrentDbUser } from '@/lib/db-user'
 import { getStripe } from '@/lib/stripe'
+import { planForPriceId } from '@/lib/stripe-plans'
 
 export const runtime = 'nodejs'
 
 interface Body {
   priceId?: string
-  plan?: string
-  interval?: 'monthly' | 'yearly'
 }
 
 export async function POST(req: NextRequest) {
@@ -19,21 +18,19 @@ export async function POST(req: NextRequest) {
   }
 
   const priceId = (body.priceId ?? '').trim()
-  const plan = (body.plan ?? '').trim()
-  const interval = body.interval
-
   if (!priceId) {
     return NextResponse.json({ error: 'missing_price_id' }, { status: 400 })
   }
-  if (!plan || (plan !== 'pro' && plan !== 'business')) {
-    return NextResponse.json({ error: 'invalid_plan' }, { status: 400 })
-  }
-  if (interval !== 'monthly' && interval !== 'yearly') {
-    return NextResponse.json({ error: 'invalid_interval' }, { status: 400 })
+  // Plan and interval are derived from the price on the server — never trusted from the client.
+  const target = planForPriceId(priceId)
+  if (!target) {
+    return NextResponse.json({ error: 'invalid_price_id' }, { status: 400 })
   }
 
-  const session = await auth().catch(() => null)
-  const customerEmail = session?.user?.email ?? undefined
+  const user = await getCurrentDbUser().catch(() => null)
+  if (!user) {
+    return NextResponse.json({ error: 'unauthorized', message: 'Bitte melde dich an, um ein Abo abzuschließen.' }, { status: 401 })
+  }
 
   const baseUrl = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
 
@@ -43,10 +40,12 @@ export async function POST(req: NextRequest) {
       mode: 'subscription',
       payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${baseUrl}/dashboard/subscription?success=true&plan=${encodeURIComponent(plan)}&interval=${encodeURIComponent(interval)}`,
+      success_url: `${baseUrl}/dashboard/subscription?success=true&plan=${encodeURIComponent(target.plan)}&interval=${encodeURIComponent(target.interval)}`,
       cancel_url: `${baseUrl}/dashboard/subscription?canceled=true`,
-      metadata: { plan, interval },
-      ...(customerEmail ? { customer_email: customerEmail } : {}),
+      client_reference_id: user.id,
+      metadata: { userId: user.id, plan: target.plan, interval: target.interval },
+      subscription_data: { metadata: { userId: user.id } },
+      ...(user.stripeCustomerId ? { customer: user.stripeCustomerId } : { customer_email: user.email }),
     })
 
     if (!checkout.url) {

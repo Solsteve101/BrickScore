@@ -7,7 +7,7 @@ import {
   saveExport,
   triggerDownload,
 } from '../exports-store'
-import { spendTokens, getUsage, type UsagePlan } from '../usage-store'
+import { spendTokens, getUsage, TOKEN_COST, type UsagePlan } from '../usage-store'
 
 export type ExportableFormat = 'pdf' | 'xlsx'
 
@@ -30,7 +30,7 @@ export async function runExport(input: RunExportInput): Promise<{ filename: stri
   const { format, dealId, ...rest } = input
 
   const usage = await getUsage()
-  if (usage.tokens_remaining < 2) {
+  if (usage.tokens_remaining < TOKEN_COST.export) {
     throw new Error('Nutzungslimit erreicht. Erneuert sich am Montag oder jetzt upgraden.')
   }
   const plan: UsagePlan = usage.plan
